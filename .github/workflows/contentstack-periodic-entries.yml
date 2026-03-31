@@ -26,4 +26,5 @@ jobs:
           VITE_CONTENTSTACK_ENVIRONMENT: ${{ secrets.VITE_CONTENTSTACK_ENVIRONMENT }}
           CONTENTSTACK_MANIFEST_PATH: ${{ secrets.CONTENTSTACK_MANIFEST_PATH }}
           CONTENTSTACK_PERIODIC_COUNT: ${{ secrets.CONTENTSTACK_PERIODIC_COUNT }}
-        run: npm run automate:entries:periodic
+        # CI has no .env file; variables come from the env block above.
+        run: npm run automate:entries:periodic:ci

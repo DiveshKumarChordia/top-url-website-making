@@ -60,6 +60,8 @@ Set **`VITE_CONTENTSTACK_CONTENT_TYPE_UIDS`** to a comma-separated list of every
 
 Workflow: [`.github/workflows/contentstack-periodic-entries.yml`](.github/workflows/contentstack-periodic-entries.yml).
 
+The workflow runs **`npm run automate:entries:periodic:ci`** (no `--env-file=.env`; the runner has no `.env` file). Locally use **`npm run automate:entries:periodic`** with a `.env` file.
+
 Configure repository **Secrets** (names must match or edit the workflow):
 
 - `CONTENTSTACK_MANAGEMENT_TOKEN` (required)
