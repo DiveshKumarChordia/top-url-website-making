@@ -63,7 +63,13 @@ For each content type in [`scripts/content-types.manifest.json`](scripts/content
 
 So if you set the secret to **20** but each type still had `"count": 1` in the manifest, you would only get **one** new entry per type per run. Omitting `periodic.count` lets the secret control volume — e.g. **3** enabled types × **20** × **6** runs/hour (every 10 min) ⇒ **360** new entries/hour until you change cron or count.
 
+### Diagrams (Mermaid)
+
+The fenced `mermaid` blocks below render as graphics on **[GitHub’s README page](https://github.com/DiveshKumarChordia/top-url-website-making/blob/main/README.md)**. If your preview only shows the raw `sequenceDiagram` / `flowchart` lines, the file is still valid — your viewer simply does not support Mermaid (common in IDEs and some hosts). Paste the block into [mermaid.live](https://mermaid.live) to view or export an image.
+
 ### Sequence: GitHub Actions → Contentstack
+
+Plain steps (same idea as the diagram): GitHub Actions starts the periodic npm script → script reads manifest + env/secrets → for each `periodic.enabled` type, create and publish **N** entries via CMA → job exits; the app sees new entries through the Delivery API after publish.
 
 ```mermaid
 sequenceDiagram
@@ -84,6 +90,8 @@ sequenceDiagram
 ```
 
 ### Flow: local vs CI vs browser
+
+Plain relationships: the manifest feeds **bootstrap** (`automate:manifest` → CMA) and **periodic** runs (local script and GitHub workflow → CMA). The Vite app only **reads** published data via the Delivery API.
 
 ```mermaid
 flowchart TB
