@@ -80,6 +80,21 @@ Workflow: [`.github/workflows/contentstack-periodic-entries.yml`](.github/workfl
 
 The workflow runs **`npm run automate:entries:periodic:ci`** (no `--env-file=.env`; the runner has no `.env` file). Locally use **`npm run automate:entries:periodic`** with a `.env` file.
 
+### Repository secrets vs environment secrets (GitHub)
+
+Under **Settings → Secrets and variables → Actions**, GitHub shows two different ideas:
+
+| UI area | What it is | Used by this repo’s periodic workflow? |
+|---------|------------|----------------------------------------|
+| **Repository secrets** | Encrypted values available to workflows on this repo | **Yes.** The YAML reads `${{ secrets.NAME }}` from here. |
+| **Environment secrets** (e.g. “production”) | Secrets tied to a named [GitHub Environment](https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment) | **No** — the workflow does not set `environment: …` on the job, so “This environment has no secrets” is **normal**, not a missing configuration. |
+
+**What the periodic job actually needs** (as repository secrets): management token, stack API key (`CONTENTSTACK_API_KEY` or `VITE_CONTENTSTACK_API_KEY`), publish/environment uid (`CONTENTSTACK_PUBLISH_ENVIRONMENT` or `VITE_CONTENTSTACK_ENVIRONMENT`), plus any optional names you added to the workflow `env` block (host, branch, locale, manifest path, periodic count).
+
+**What it does *not* read:** Delivery API variables (`VITE_CONTENTSTACK_DELIVERY_TOKEN`, `VITE_CONTENTSTACK_DELIVERY_HOST`, etc.). Those are for the **Vite app / Launch** build only. Storing them as repository secrets is optional and does not affect whether **`automate:entries:periodic:ci`** succeeds.
+
+**Annotations:** A successful run may still show a GitHub notice about Node versions used *by* `actions/checkout` and `actions/setup-node`. That is separate from your workflow’s `node-version: '20'` for `npm ci` / the script; it does not mean the job failed.
+
 Configure repository **Secrets** — use these **exact** names (or edit the workflow):
 
 - **`CONTENTSTACK_MANAGEMENT_TOKEN`** (required)
@@ -97,6 +112,42 @@ Optional workflow extras (only if you add them to the workflow `env` block):
 Cron `*/10 * * * *` runs in **UTC**. Use `workflow_dispatch` for a manual test.
 
 **Write volume** — Every 10 minutes produces many entries over time; watch **Management API rate limits** and stack hygiene (retention / cleanup).
+
+### Contentstack Automation Hub (alternative to GitHub `schedule`)
+
+If you prefer running on a timer **inside Contentstack** (or GitHub’s cron is slow or unavailable), use **[Automation Hub](https://www.contentstack.com/docs/developers/automation-hub-guides/about-automation-hub)** so the **same** GitHub workflow still executes (same `npm` script and **repository secrets**).
+
+**Pattern**
+
+1. **Trigger:** [Scheduler by Automate](https://www.contentstack.com/docs/developers/automation-hub-connectors/scheduler-by-automation-hub) — set your interval (e.g. every 10 minutes) in the Automation Hub UI.
+2. **Action:** [HTTP Action](https://www.contentstack.com/docs/developers/automation-hub-connectors/http-action) — **POST** to the GitHub **workflow dispatch** API so only `workflow_dispatch` runs (not a duplicate custom script).
+
+**HTTP Action settings**
+
+| Field | Value |
+|-------|--------|
+| Method | `POST` |
+| URL | `https://api.github.com/repos/<owner>/<repo>/actions/workflows/contentstack-periodic-entries.yml/dispatches` |
+| Headers | `Accept: application/vnd.github+json`, `Content-Type: application/json`, `Authorization: Bearer <GITHUB_PAT>` |
+| Body (JSON) | `{"ref":"main"}` (use your default branch name if not `main`) |
+
+Replace `<owner>` / `<repo>` (e.g. `DiveshKumarChordia` / `top-url-website-making`). The workflow **file name** (`contentstack-periodic-entries.yml`) is valid as the workflow identifier in this API. In the HTTP Action, turn on **Throw error status** (or equivalent) for 4xx/5xx so failed dispatches show in Automation Hub execution logs.
+
+**GitHub token**
+
+- Create a **fine-grained PAT** with **Actions: Read and write** on this repository, or a **classic** PAT with `repo` / workflow scope as required by your org policy.
+- Store the PAT in Automation Hub (connector **Account** / **secrets**), not in the repo.
+
+**Avoid double runs**
+
+If Automation Hub fires on the same cadence as GitHub’s `schedule` cron, you will create **twice** as many entries. Either:
+
+- Rely on **Automation Hub only** and remove or comment out the `schedule:` block in [`.github/workflows/contentstack-periodic-entries.yml`](.github/workflows/contentstack-periodic-entries.yml), **or**
+- Keep GitHub cron and do **not** add a parallel Automation Hub schedule.
+
+**Purely native alternative (advanced)**
+
+You can chain **Contentstack Management — Entries** actions (create/publish) in Automation Hub without GitHub, but that **does not** run [`scripts/periodic-entries-from-manifest.mjs`](scripts/periodic-entries-from-manifest.mjs) or read [`scripts/content-types.manifest.json`](scripts/content-types.manifest.json); you would re-implement each content type and payload in the UI. The **HTTP → GitHub dispatch** approach keeps one source of truth.
 
 ## Management token scope
 

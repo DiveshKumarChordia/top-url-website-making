@@ -92,12 +92,14 @@ Vite + React app that lists **published** entries for one or more content types 
 
 ## Architecture & automation (overview)
 
+The GitHub periodic workflow uses **repository** secrets only; if **environment** secrets (per deployment environment) are empty in Settings, that is expected—see **[AUTOMATION.md — Repository vs environment secrets](AUTOMATION.md#repository-secrets-vs-environment-secrets-github)**.
+
 Typical use cases:
 
 | Flow | When to use it |
 |------|----------------|
 | **Local / one-off bootstrap** | Run `npm run automate:manifest` to create missing content types from the manifest and **seed** entries (references, taxonomy placeholders). |
-| **Scheduled or manual entries** | Run `npm run automate:entries:periodic` (or the GitHub Action) to **only** create + publish new rows for types with `periodic.enabled` — no schema changes. |
+| **Scheduled or manual entries** | Run `npm run automate:entries:periodic`, the GitHub Action, or trigger the same workflow from **Contentstack Automation Hub** (HTTP POST → `workflow_dispatch`) — see **[AUTOMATION.md — Automation Hub](AUTOMATION.md#contentstack-automation-hub-alternative-to-github-schedule)**. |
 | **Contentstack Launch** | Connect the repo; build outputs `dist/`; set `VITE_*` for the Delivery API so the app lists **published** entries. |
 | **Demo / load-style churn** | Periodic job + `CONTENTSTACK_PERIODIC_COUNT` (see below) — watch [Management API](https://www.contentstack.com/docs/developers/apis/content-management-api) limits and clean up test data. |
 
