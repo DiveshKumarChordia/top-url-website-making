@@ -62,12 +62,15 @@ Workflow: [`.github/workflows/contentstack-periodic-entries.yml`](.github/workfl
 
 The workflow runs **`npm run automate:entries:periodic:ci`** (no `--env-file=.env`; the runner has no `.env` file). Locally use **`npm run automate:entries:periodic`** with a `.env` file.
 
-Configure repository **Secrets** (names must match or edit the workflow):
+Configure repository **Secrets** — use these **exact** names (or edit the workflow):
 
-- `CONTENTSTACK_MANAGEMENT_TOKEN` (required)
-- `CONTENTSTACK_API_KEY` **or** `VITE_CONTENTSTACK_API_KEY`
-- `CONTENTSTACK_PUBLISH_ENVIRONMENT` **or** `VITE_CONTENTSTACK_ENVIRONMENT`
-- Optional: `CONTENTSTACK_MANAGEMENT_HOST`, `CONTENTSTACK_BRANCH`, `CONTENTSTACK_LOCALE`, `CONTENTSTACK_MANIFEST_PATH`, `CONTENTSTACK_PERIODIC_COUNT`
+- **`CONTENTSTACK_MANAGEMENT_TOKEN`** (required)
+- **`CONTENTSTACK_API_KEY`** *or* **`VITE_CONTENTSTACK_API_KEY`** (stack API key; add at least one)
+- **`CONTENTSTACK_PUBLISH_ENVIRONMENT`** *or* **`VITE_CONTENTSTACK_ENVIRONMENT`** (required for publish; add at least one)
+
+Optional:
+
+- `CONTENTSTACK_MANAGEMENT_HOST`, `CONTENTSTACK_BRANCH`, `CONTENTSTACK_LOCALE`, `CONTENTSTACK_MANIFEST_PATH`, `CONTENTSTACK_PERIODIC_COUNT`
 
 Cron `*/10 * * * *` runs in **UTC**. Use `workflow_dispatch` for a manual test.
 
