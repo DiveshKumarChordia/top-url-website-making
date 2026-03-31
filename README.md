@@ -105,7 +105,9 @@ For each content type in [`scripts/content-types.manifest.json`](scripts/content
 3. Otherwise **`defaults.periodicCount`** in the manifest.
 4. Otherwise **1**.
 
-So if you set the secret to **20** but each type still had `"count": 1` in the manifest, you would only get **one** new entry per type per run. Omitting `periodic.count` lets the secret control volume — e.g. **3** enabled types × **20** × **6** runs/hour (every 10 min) ⇒ **360** new entries/hour until you change cron or count.
+**This repo’s demo manifest omits `periodic.count`**, so `CONTENTSTACK_PERIODIC_COUNT` (or `defaults.periodicCount`) applies. If you **add** a numeric `periodic.count` on a content type, it overrides the secret for that type only.
+
+Example write volume: **3** enabled types × **20** entries × **6** runs/hour (cron every 10 min) ⇒ **360** new entries/hour until you lower the secret, add per-type `periodic.count`, or change the schedule.
 
 ### Diagrams (Mermaid)
 
@@ -135,7 +137,7 @@ sequenceDiagram
 
 ### Flow: local vs CI vs browser
 
-Plain relationships: the manifest feeds **bootstrap** (`automate:manifest` → CMA) and **periodic** runs (local script and GitHub workflow → CMA). The Vite app only **reads** published data via the Delivery API.
+Plain relationships: the manifest feeds **bootstrap** (`automate:manifest` → CMA) and **periodic** runs (**`automate:entries:periodic`** locally, **`automate:entries:periodic:ci`** in GitHub Actions → same Node script). **`automate:entry`** posts one entry via CMA without the manifest loop. The Vite app only **reads** published data via the Delivery API.
 
 ```mermaid
 flowchart TB
@@ -150,9 +152,14 @@ flowchart TB
 
   subgraph Periodic["Periodic (entries only)"]
     L[npm run automate:entries:periodic]
-    W[GitHub workflow automate:entries:periodic:ci]
+    W[npm run automate:entries:periodic:ci]
     L --> CMA2[Contentstack CMA]
     W --> CMA2
+  end
+
+  subgraph OneOff["Single entry optional"]
+    O[npm run automate:entry]
+    O --> CMA3[Contentstack CMA]
   end
 
   subgraph App["Front-end"]
@@ -165,6 +172,7 @@ flowchart TB
   CT --> W
   CMA1 --> DLA
   CMA2 --> DLA
+  CMA3 --> DLA
 ```
 
 Details, secrets, and placeholders: **[AUTOMATION.md](./AUTOMATION.md)**.
