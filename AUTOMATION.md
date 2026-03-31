@@ -14,7 +14,7 @@ Requires **Node.js 20+** (`node --env-file=.env`).
 - **Order** — Referenced content types must appear **before** types that use `__REF__:their_uid:first|latest`.
 - **`periodic`** — Optional block:
   - `enabled: true`
-  - `count` — optional; falls back to `defaults.periodicCount` or **`CONTENTSTACK_PERIODIC_COUNT`** env.
+  - **`count`** — optional **number**. If set (e.g. `1`), it **overrides** both **`CONTENTSTACK_PERIODIC_COUNT`** and **`defaults.periodicCount`**. Omit `count` to use env (*highest priority among globals*), then `defaults.periodicCount`, then `1`.
   - `entryTemplate` — optional; falls back to last item in `entries[]`.
 - **`periodicOnly: true`** — Skipped by `automate:manifest` bootstrap (types created elsewhere).
 
@@ -50,7 +50,7 @@ For each taxonomy field `uid` (e.g. `categories`):
 | `CONTENTSTACK_LOCALE` | e.g. `en-us` |
 | `VITE_CONTENTSTACK_ENVIRONMENT` or `CONTENTSTACK_PUBLISH_ENVIRONMENT` | Publish + list filters |
 | `CONTENTSTACK_MANIFEST_PATH` | Optional path to manifest JSON |
-| `CONTENTSTACK_PERIODIC_COUNT` | Default repeat count for periodic when `periodic.count` omitted |
+| `CONTENTSTACK_PERIODIC_COUNT` | Repeat count per `periodic.enabled` type when **`periodic.count` is omitted** (each run creates this many entries **per** type) |
 
 ## Front-end / Launch
 

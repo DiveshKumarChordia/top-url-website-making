@@ -1,5 +1,23 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import './App.css'
+
+const HeroCanvas = lazy(() => import('./components/HeroCanvas.jsx'))
+
+const ENTRY_META = new Set([
+  'uid',
+  'title',
+  'locale',
+  'tags',
+  'ACL',
+  '_in_progress',
+  'publish_details',
+  'created_at',
+  'created_by',
+  'updated_at',
+  'updated_by',
+  '_version',
+  '_content_type_uid',
+])
 
 function getConfig() {
   const apiKey = import.meta.env.VITE_CONTENTSTACK_API_KEY
@@ -29,10 +47,98 @@ function buildEntriesUrl(deliveryHost, environment, contentTypeUid) {
   return q ? `${base}?${q}` : base
 }
 
+function formatUpdatedAt(iso) {
+  if (!iso) return null
+  try {
+    return new Date(iso).toLocaleString(undefined, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    })
+  } catch {
+    return null
+  }
+}
+
+function extraFields(entry) {
+  const out = {}
+  for (const [k, v] of Object.entries(entry)) {
+    if (k.startsWith('_') || ENTRY_META.has(k)) continue
+    out[k] = v
+  }
+  return out
+}
+
+function EntryCard({ entry }) {
+  const [copied, setCopied] = useState(false)
+  const extras = extraFields(entry)
+  const hasExtras = Object.keys(extras).length > 0
+  const updated = formatUpdatedAt(entry.updated_at)
+
+  const copyUid = useCallback(() => {
+    const t = String(entry.uid ?? '')
+    if (!t || !navigator.clipboard?.writeText) return
+    void navigator.clipboard.writeText(t).then(() => {
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 2000)
+    })
+  }, [entry.uid])
+
+  return (
+    <li className="entry-card">
+      <div className="entry-card__main">
+        <h3 className="entry-card__title">
+          {entry.title != null && entry.title !== ''
+            ? entry.title
+            : '(no title)'}
+        </h3>
+        {updated ? (
+          <p className="entry-card__meta">Updated {updated}</p>
+        ) : null}
+        <div className="entry-card__uid-row">
+          <code className="entry-card__uid" title={entry.uid}>
+            {entry.uid}
+          </code>
+          <button
+            type="button"
+            className="entry-card__copy"
+            onClick={copyUid}
+            aria-label="Copy entry UID"
+          >
+            {copied ? 'Copied' : 'Copy UID'}
+          </button>
+        </div>
+      </div>
+      {hasExtras ? (
+        <details className="entry-card__details">
+          <summary className="entry-card__summary">All fields</summary>
+          <pre className="entry-card__pre">
+            {JSON.stringify(extras, null, 2)}
+          </pre>
+        </details>
+      ) : null}
+    </li>
+  )
+}
+
+function LoadingSkeleton({ count }) {
+  return (
+    <div className="skeleton-stack" aria-busy="true" aria-label="Loading">
+      {Array.from({ length: count }, (_, i) => (
+        <div key={i} className="skeleton skeleton--section">
+          <div className="skeleton__line skeleton__line--short" />
+          <div className="skeleton__line" />
+          <div className="skeleton__line" />
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function App() {
   const [sections, setSections] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const { environment: envUid } = getConfig()
 
   useEffect(() => {
     const { apiKey, deliveryToken, environment, deliveryHost } = getConfig()
@@ -71,7 +177,12 @@ export default function App() {
               )
             }
             const list = Array.isArray(body.entries) ? body.entries : []
-            return { contentTypeUid: uid, entries: list }
+            const sorted = [...list].sort((a, b) => {
+              const ta = a.updated_at ? new Date(a.updated_at).getTime() : 0
+              const tb = b.updated_at ? new Date(b.updated_at).getTime() : 0
+              return tb - ta
+            })
+            return { contentTypeUid: uid, entries: sorted }
           }),
         )
         setSections(results)
@@ -90,68 +201,106 @@ export default function App() {
   const totalEntries = sections.reduce((n, s) => n + s.entries.length, 0)
 
   return (
-    <main className="page">
-      <header className="header">
-        <h1>Contentstack entries</h1>
-        <p className="lede">
-          Delivery API — content types:{' '}
-          {contentTypeUids.map((uid, i) => (
-            <span key={uid}>
-              {i > 0 ? ', ' : ''}
-              <code>{uid}</code>
+    <>
+      <header className="site-header">
+        <div className="site-header__inner">
+          <div className="site-header__brand">
+            <span className="site-header__logo" aria-hidden="true" />
+            <div>
+              <p className="site-header__title">Contentstack</p>
+              <p className="site-header__subtitle">Delivery preview</p>
+            </div>
+          </div>
+          {envUid ? (
+            <span className="env-badge" title="VITE_CONTENTSTACK_ENVIRONMENT">
+              {envUid}
             </span>
-          ))}
-          {contentTypeUids.length > 1 && (
-            <span className="lede__hint">
-              {' '}
-              (set <code>VITE_CONTENTSTACK_CONTENT_TYPE_UIDS</code> as a
-              comma-separated list)
-            </span>
-          )}
-        </p>
+          ) : null}
+        </div>
       </header>
 
-      {loading && <p className="status">Loading…</p>}
+      <section className="hero-canvas-wrap" aria-label="Decorative 3D graphic">
+        <Suspense
+          fallback={<div className="hero-canvas hero-canvas--fallback" />}
+        >
+          <HeroCanvas />
+        </Suspense>
+      </section>
 
-      {error && (
-        <div className="message message--error" role="alert">
-          {error}
+      <main className="page">
+        <div className="page__intro">
+          <h1 className="page__headline">Entries</h1>
+          <p className="page__lede">
+            Live data from your stack for{' '}
+            <span className="page__types">
+              {contentTypeUids.map((uid, i) => (
+                <span key={uid} className="page__type-chip">
+                  {i > 0 ? ' · ' : ''}
+                  <code>{uid}</code>
+                </span>
+              ))}
+            </span>
+          </p>
+          {!loading && !error ? (
+            <dl className="stats">
+              <div className="stats__item">
+                <dt className="stats__label">Content types</dt>
+                <dd className="stats__value">{contentTypeUids.length}</dd>
+              </div>
+              <div className="stats__item">
+                <dt className="stats__label">Entries</dt>
+                <dd className="stats__value">{totalEntries}</dd>
+              </div>
+            </dl>
+          ) : null}
         </div>
-      )}
 
-      {!loading && !error && totalEntries === 0 && (
-        <div className="message">
-          No entries returned. Publish entries to the configured environment, or
-          check your delivery token, environment uid, and content type UIDs.
-        </div>
-      )}
+        {loading ? <LoadingSkeleton count={Math.min(contentTypeUids.length, 4)} /> : null}
 
-      {!loading &&
-        !error &&
-        sections.map(({ contentTypeUid, entries }) => (
-          <section key={contentTypeUid} className="ct-section">
-            <h2 className="ct-section__heading">
-              <code>{contentTypeUid}</code>
-              <span className="ct-section__count">{entries.length} entries</span>
-            </h2>
-            {entries.length > 0 ? (
-              <ol className="entry-list">
-                {entries.map((entry) => (
-                  <li key={entry.uid} className="entry-list__item">
-                    <span className="entry-list__title">
-                      {entry.title != null && entry.title !== ''
-                        ? entry.title
-                        : '(no title)'}
-                    </span>
-                    <span className="entry-list__uid">{entry.uid}</span>
-                  </li>
-                ))}
-              </ol>
-            ) : (
-              <p className="ct-section__empty">No entries for this type.</p>
-            )}
-          </section>
-        ))}
-    </main>
+        {error ? (
+          <div className="banner banner--error" role="alert">
+            <strong className="banner__title">Something went wrong</strong>
+            <p className="banner__text">{error}</p>
+          </div>
+        ) : null}
+
+        {!loading && !error && totalEntries === 0 ? (
+          <div className="banner banner--neutral">
+            <strong className="banner__title">No entries yet</strong>
+            <p className="banner__text">
+              Publish content to this environment or check your delivery token,
+              environment uid, and content type list in{' '}
+              <code>VITE_CONTENTSTACK_CONTENT_TYPE_UIDS</code>.
+            </p>
+          </div>
+        ) : null}
+
+        {!loading &&
+          !error &&
+          sections.map(({ contentTypeUid, entries }) => (
+            <section key={contentTypeUid} className="ct-panel">
+              <div className="ct-panel__header">
+                <h2 className="ct-panel__title">
+                  <code className="ct-panel__uid">{contentTypeUid}</code>
+                </h2>
+                <span className="ct-panel__badge">{entries.length}</span>
+              </div>
+              {entries.length > 0 ? (
+                <ul className="entry-grid">
+                  {entries.map((entry) => (
+                    <EntryCard key={entry.uid} entry={entry} />
+                  ))}
+                </ul>
+              ) : (
+                <p className="ct-panel__empty">No entries for this type.</p>
+              )}
+            </section>
+          ))}
+      </main>
+
+      <footer className="site-footer">
+        <p>Powered by Contentstack Delivery API · Read-only</p>
+      </footer>
+    </>
   )
 }

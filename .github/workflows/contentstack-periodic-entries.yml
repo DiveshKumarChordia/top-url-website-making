@@ -4,7 +4,8 @@
 #   CONTENTSTACK_PUBLISH_ENVIRONMENT or VITE_CONTENTSTACK_ENVIRONMENT — publish target uid
 # Optional:
 #   CONTENTSTACK_BRANCH, CONTENTSTACK_LOCALE, CONTENTSTACK_MANAGEMENT_HOST,
-#   CONTENTSTACK_MANIFEST_PATH, CONTENTSTACK_PERIODIC_COUNT
+#   CONTENTSTACK_MANIFEST_PATH,
+#   CONTENTSTACK_PERIODIC_COUNT — entries per periodic.enabled type per run (ignored if manifest sets periodic.count)
 
 name: Contentstack periodic entries
 

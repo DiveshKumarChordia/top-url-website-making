@@ -64,7 +64,6 @@
       ],
       "periodic": {
         "enabled": true,
-        "count": 1,
         "entryTemplate": {
           "single_line": "periodic single",
           "multi_line": "periodic multi line body",
@@ -102,7 +101,6 @@
       ],
       "periodic": {
         "enabled": true,
-        "count": 1,
         "entryTemplate": {
           "json_body": {
             "type": "doc",
@@ -180,7 +178,6 @@
       ],
       "periodic": {
         "enabled": true,
-        "count": 1,
         "entryTemplate": {
           "author_group": {
             "name": "Periodic Author",
