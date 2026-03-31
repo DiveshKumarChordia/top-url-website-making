@@ -1,4 +1,12 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
+import { deriveExcerptFromExtras } from './lib/entryExcerpt.js'
 import './App.css'
 
 const HeroCanvas = lazy(() => import('./components/HeroCanvas.jsx'))
@@ -59,6 +67,30 @@ function formatUpdatedAt(iso) {
   }
 }
 
+function formatRelativeOrAbsolute(iso) {
+  if (!iso) return null
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return null
+  const diffMs = Date.now() - d.getTime()
+  const sec = Math.floor(diffMs / 1000)
+  if (sec < 45) return 'Just now'
+  const min = Math.floor(sec / 60)
+  if (min < 60) return `${min}m ago`
+  const hr = Math.floor(min / 60)
+  if (hr < 24) return `${hr}h ago`
+  const day = Math.floor(hr / 24)
+  if (day < 7) return `${day}d ago`
+  return formatUpdatedAt(iso)
+}
+
+function humanizeContentTypeUid(uid) {
+  return uid
+    .split('_')
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ')
+}
+
 function extraFields(entry) {
   const out = {}
   for (const [k, v] of Object.entries(entry)) {
@@ -68,11 +100,17 @@ function extraFields(entry) {
   return out
 }
 
-function EntryCard({ entry }) {
+function DigestItem({ entry, contentTypeUid }) {
   const [copied, setCopied] = useState(false)
   const extras = extraFields(entry)
   const hasExtras = Object.keys(extras).length > 0
-  const updated = formatUpdatedAt(entry.updated_at)
+  const excerpt = deriveExcerptFromExtras(extras)
+  const updated = formatRelativeOrAbsolute(entry.updated_at)
+  const typeLabel = humanizeContentTypeUid(contentTypeUid)
+  const title =
+    entry.title != null && String(entry.title).trim() !== ''
+      ? String(entry.title)
+      : 'Untitled entry'
 
   const copyUid = useCallback(() => {
     const t = String(entry.uid ?? '')
@@ -84,34 +122,35 @@ function EntryCard({ entry }) {
   }, [entry.uid])
 
   return (
-    <li className="entry-card">
-      <div className="entry-card__main">
-        <h3 className="entry-card__title">
-          {entry.title != null && entry.title !== ''
-            ? entry.title
-            : '(no title)'}
-        </h3>
+    <li className="digest-item">
+      <div className="digest-item__head">
+        <span className="digest-badge">{typeLabel}</span>
         {updated ? (
-          <p className="entry-card__meta">Updated {updated}</p>
-        ) : null}
-        <div className="entry-card__uid-row">
-          <code className="entry-card__uid" title={entry.uid}>
-            {entry.uid}
-          </code>
-          <button
-            type="button"
-            className="entry-card__copy"
-            onClick={copyUid}
-            aria-label="Copy entry UID"
+          <time
+            className="digest-item__time"
+            dateTime={entry.updated_at ?? undefined}
+            title={formatUpdatedAt(entry.updated_at) ?? undefined}
           >
-            {copied ? 'Copied' : 'Copy UID'}
-          </button>
-        </div>
+            {updated}
+          </time>
+        ) : null}
+      </div>
+      <h2 className="digest-item__title">{title}</h2>
+      {excerpt ? <p className="digest-item__excerpt">{excerpt}</p> : null}
+      <div className="digest-item__actions">
+        <button
+          type="button"
+          className="digest-item__copy"
+          onClick={copyUid}
+          aria-label="Copy entry UID"
+        >
+          {copied ? 'Copied' : 'Copy UID'}
+        </button>
       </div>
       {hasExtras ? (
-        <details className="entry-card__details">
-          <summary className="entry-card__summary">All fields</summary>
-          <pre className="entry-card__pre">
+        <details className="digest-item__details">
+          <summary className="digest-item__summary">Details</summary>
+          <pre className="digest-item__pre">
             {JSON.stringify(extras, null, 2)}
           </pre>
         </details>
@@ -120,14 +159,14 @@ function EntryCard({ entry }) {
   )
 }
 
-function LoadingSkeleton({ count }) {
+function DigestSkeleton({ count }) {
   return (
-    <div className="skeleton-stack" aria-busy="true" aria-label="Loading">
+    <div className="digest-skeleton-stack" aria-busy="true" aria-label="Loading">
       {Array.from({ length: count }, (_, i) => (
-        <div key={i} className="skeleton skeleton--section">
-          <div className="skeleton__line skeleton__line--short" />
-          <div className="skeleton__line" />
-          <div className="skeleton__line" />
+        <div key={i} className="digest-skeleton">
+          <div className="digest-skeleton__line digest-skeleton__line--short" />
+          <div className="digest-skeleton__line" />
+          <div className="digest-skeleton__line digest-skeleton__line--med" />
         </div>
       ))}
     </div>
@@ -138,6 +177,7 @@ export default function App() {
   const [sections, setSections] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [digestFilter, setDigestFilter] = useState(null)
   const { environment: envUid } = getConfig()
 
   const reloadEntries = useCallback(async () => {
@@ -201,6 +241,31 @@ export default function App() {
   const contentTypeUids = parseContentTypeUids()
   const totalEntries = sections.reduce((n, s) => n + s.entries.length, 0)
 
+  const digestItems = useMemo(() => {
+    const rows = sections.flatMap((s) =>
+      s.entries.map((e) => ({
+        entry: e,
+        contentTypeUid: s.contentTypeUid,
+        key: `${s.contentTypeUid}:${e.uid}`,
+      })),
+    )
+    rows.sort((a, b) => {
+      const ta = a.entry.updated_at
+        ? new Date(a.entry.updated_at).getTime()
+        : 0
+      const tb = b.entry.updated_at
+        ? new Date(b.entry.updated_at).getTime()
+        : 0
+      return tb - ta
+    })
+    return rows
+  }, [sections])
+
+  const filteredDigest = useMemo(() => {
+    if (digestFilter == null) return digestItems
+    return digestItems.filter((r) => r.contentTypeUid === digestFilter)
+  }, [digestItems, digestFilter])
+
   return (
     <>
       <header className="site-header">
@@ -209,7 +274,7 @@ export default function App() {
             <span className="site-header__logo" aria-hidden="true" />
             <div>
               <p className="site-header__title">Contentstack</p>
-              <p className="site-header__subtitle">Delivery preview</p>
+              <p className="site-header__subtitle">Stack digest</p>
             </div>
           </div>
           <div className="site-header__actions">
@@ -232,43 +297,57 @@ export default function App() {
         </div>
       </header>
 
-      <section className="hero-canvas-wrap" aria-label="Decorative 3D graphic">
-        <Suspense
-          fallback={<div className="hero-canvas hero-canvas--fallback" />}
-        >
-          <HeroCanvas />
-        </Suspense>
-      </section>
-
       <main className="page">
         <div className="page__intro">
-          <h1 className="page__headline">Entries</h1>
+          <h1 className="page__headline">Latest updates</h1>
           <p className="page__lede">
-            Live data from your stack for{' '}
-            <span className="page__types">
-              {contentTypeUids.map((uid, i) => (
-                <span key={uid} className="page__type-chip">
-                  {i > 0 ? ' · ' : ''}
-                  <code>{uid}</code>
-                </span>
-              ))}
-            </span>
+            Published content from your stack, newest first—like a lightweight
+            changelog across your selected types. Use Refresh after automation
+            or publishes to reload.
           </p>
           {!loading && !error ? (
-            <dl className="stats">
-              <div className="stats__item">
-                <dt className="stats__label">Content types</dt>
-                <dd className="stats__value">{contentTypeUids.length}</dd>
-              </div>
-              <div className="stats__item">
-                <dt className="stats__label">Entries</dt>
-                <dd className="stats__value">{totalEntries}</dd>
-              </div>
-            </dl>
+            <p className="page__intro-meta" aria-live="polite">
+              <strong>{contentTypeUids.length}</strong> types ·{' '}
+              <strong>{totalEntries}</strong> entries
+            </p>
           ) : null}
         </div>
 
-        {loading ? <LoadingSkeleton count={Math.min(contentTypeUids.length, 4)} /> : null}
+        {!loading && !error && totalEntries > 0 ? (
+          <div
+            className="digest-filters"
+            role="group"
+            aria-label="Filter by content type"
+          >
+            <button
+              type="button"
+              className={
+                digestFilter == null
+                  ? 'digest-filter digest-filter--active'
+                  : 'digest-filter'
+              }
+              onClick={() => setDigestFilter(null)}
+            >
+              All
+            </button>
+            {contentTypeUids.map((uid) => (
+              <button
+                key={uid}
+                type="button"
+                className={
+                  digestFilter === uid
+                    ? 'digest-filter digest-filter--active'
+                    : 'digest-filter'
+                }
+                onClick={() => setDigestFilter(uid)}
+              >
+                {humanizeContentTypeUid(uid)}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
+        {loading ? <DigestSkeleton count={5} /> : null}
 
         {error ? (
           <div className="banner banner--error" role="alert">
@@ -288,31 +367,33 @@ export default function App() {
           </div>
         ) : null}
 
-        {!loading &&
-          !error &&
-          sections.map(({ contentTypeUid, entries }) => (
-            <section key={contentTypeUid} className="ct-panel">
-              <div className="ct-panel__header">
-                <h2 className="ct-panel__title">
-                  <code className="ct-panel__uid">{contentTypeUid}</code>
-                </h2>
-                <span className="ct-panel__badge">{entries.length}</span>
-              </div>
-              {entries.length > 0 ? (
-                <ul className="entry-grid">
-                  {entries.map((entry) => (
-                    <EntryCard key={entry.uid} entry={entry} />
-                  ))}
-                </ul>
-              ) : (
-                <p className="ct-panel__empty">No entries for this type.</p>
-              )}
-            </section>
-          ))}
+        {!loading && !error && filteredDigest.length > 0 ? (
+          <ol className="digest-feed">
+            {filteredDigest.map(({ entry, contentTypeUid, key }) => (
+              <DigestItem
+                key={key}
+                entry={entry}
+                contentTypeUid={contentTypeUid}
+              />
+            ))}
+          </ol>
+        ) : null}
+
+        {!loading && !error && totalEntries > 0 && filteredDigest.length === 0 ? (
+          <p className="digest-empty-filter">No entries for this type.</p>
+        ) : null}
+
+        <section className="hero-canvas-wrap" aria-label="Decorative 3D graphic">
+          <Suspense
+            fallback={<div className="hero-canvas hero-canvas--fallback" />}
+          >
+            <HeroCanvas />
+          </Suspense>
+        </section>
       </main>
 
       <footer className="site-footer">
-        <p>Powered by Contentstack Delivery API · Read-only</p>
+        <p>Read-only preview · Contentstack Delivery API</p>
       </footer>
     </>
   )
