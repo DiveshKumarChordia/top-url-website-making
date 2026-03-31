@@ -41,13 +41,18 @@ Vite + React app that lists **published** entries for one or more content types 
    | `CONTENTSTACK_API_KEY` or `VITE_CONTENTSTACK_API_KEY` | Stack API key (either name) |
    | `CONTENTSTACK_PUBLISH_ENVIRONMENT` or `VITE_CONTENTSTACK_ENVIRONMENT` | Target environment uid for publish / API filters |
 
-   *Optional (omit if you do not need that behavior; scripts use defaults where noted)*
+   *Recommended — always set these to match **your** stack; the CLI only marks them “optional” because it falls back if missing (wrong host / branch / locale will still break behavior at runtime)*
 
    | Variable | Purpose |
    |----------|---------|
-   | `CONTENTSTACK_MANAGEMENT_HOST` | CMA base (default `https://api.contentstack.io` in code) |
-   | `CONTENTSTACK_BRANCH` | Branch uid (e.g. `main`); omitted from requests if unset |
-   | `CONTENTSTACK_LOCALE` | Default `en-us` in code if unset |
+   | `CONTENTSTACK_MANAGEMENT_HOST` | CMA base URL for your region (e.g. `https://api.contentstack.io`; same default as in code if unset) |
+   | `CONTENTSTACK_BRANCH` | Branch uid your token uses (e.g. `main`); if unset, the branch header is omitted |
+   | `CONTENTSTACK_LOCALE` | Locale for entry payloads (e.g. `en-us`; code defaults to `en-us` if unset) |
+
+   *Optional — only when you need that feature*
+
+   | Variable | Purpose |
+   |----------|---------|
    | `CONTENTSTACK_MANIFEST_PATH` | Custom manifest path (default `scripts/content-types.manifest.json`) |
    | `CONTENTSTACK_PERIODIC_COUNT` | Batch size per `periodic.enabled` type when manifest `periodic.count` is omitted |
    | `CONTENTSTACK_MANIFEST_SKIP_SEEDS` | `true` = bootstrap without POSTing seed entries |

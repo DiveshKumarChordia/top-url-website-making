@@ -41,7 +41,7 @@ For each taxonomy field `uid` (e.g. `categories`):
 
 ### Environment variables (scripts)
 
-Variables you **do not use** can be omitted. The **optional** rows apply only when you need that behavior (e.g. skip taxonomy env if you have no taxonomy fields).
+Variables you **do not use** can be omitted. **`Recommended`** rows should match your stack even though the scripts supply fallbacks. **`Optional`** rows are for specific features only (e.g. taxonomy env when you have no taxonomy fields).
 
 **Required** (any `npm run automate:*` that talks to the CMA):
 
@@ -51,13 +51,18 @@ Variables you **do not use** can be omitted. The **optional** rows apply only wh
 | `VITE_CONTENTSTACK_API_KEY` or `CONTENTSTACK_API_KEY` | Stack API key |
 | `VITE_CONTENTSTACK_ENVIRONMENT` or `CONTENTSTACK_PUBLISH_ENVIRONMENT` | Publish target + environment filters |
 
-**Optional** (defaults or behavior toggles; omit if unused):
+**Recommended** (not validated as “missing” by the scripts, but you should set them for your stack; defaults only match some stacks):
 
 | Variable | Purpose |
 |----------|---------|
-| `CONTENTSTACK_MANAGEMENT_HOST` | CMA base; default `https://api.contentstack.io` in [`scripts/lib/cma.mjs`](scripts/lib/cma.mjs) |
-| `CONTENTSTACK_BRANCH` | Branch uid; left off CMA headers when unset |
-| `CONTENTSTACK_LOCALE` | Default `en-us` when unset |
+| `CONTENTSTACK_MANAGEMENT_HOST` | CMA base for your region; see [`scripts/lib/cma.mjs`](scripts/lib/cma.mjs) (`https://api.contentstack.io` if unset) |
+| `CONTENTSTACK_BRANCH` | Branch uid (`main`, etc.); if unset, no `branch` header is sent |
+| `CONTENTSTACK_LOCALE` | Entry locale; defaults to `en-us` if unset |
+
+**Optional** (feature toggles / only when needed):
+
+| Variable | Purpose |
+|----------|---------|
 | `CONTENTSTACK_MANIFEST_PATH` | Override path to manifest JSON |
 | `CONTENTSTACK_PERIODIC_COUNT` | Entries per `periodic.enabled` type per run when manifest **`periodic.count` is omitted** |
 | `CONTENTSTACK_MANIFEST_SKIP_SEEDS` | `true`: bootstrap without seed POSTs (see manifest `skipSeedEntries`) |
@@ -81,9 +86,13 @@ Configure repository **Secrets** — use these **exact** names (or edit the work
 - **`CONTENTSTACK_API_KEY`** *or* **`VITE_CONTENTSTACK_API_KEY`** (stack API key; add at least one)
 - **`CONTENTSTACK_PUBLISH_ENVIRONMENT`** *or* **`VITE_CONTENTSTACK_ENVIRONMENT`** (required for publish; add at least one)
 
-Optional:
+Recommended in `.env` for local runs (optional on the workflow unless you add them to `env:`):
 
-- `CONTENTSTACK_MANAGEMENT_HOST`, `CONTENTSTACK_BRANCH`, `CONTENTSTACK_LOCALE`, `CONTENTSTACK_MANIFEST_PATH`, `CONTENTSTACK_PERIODIC_COUNT`, `CONTENTSTACK_MANIFEST_SKIP_SEEDS`, `CONTENTSTACK_MANIFEST_SKIP_DUPLICATE_SEEDS` (only if you pass them through the workflow `env` block)
+- `CONTENTSTACK_MANAGEMENT_HOST`, `CONTENTSTACK_BRANCH`, `CONTENTSTACK_LOCALE`
+
+Optional workflow extras (only if you add them to the workflow `env` block):
+
+- `CONTENTSTACK_MANIFEST_PATH`, `CONTENTSTACK_PERIODIC_COUNT`, `CONTENTSTACK_MANIFEST_SKIP_SEEDS`, `CONTENTSTACK_MANIFEST_SKIP_DUPLICATE_SEEDS`
 
 Cron `*/10 * * * *` runs in **UTC**. Use `workflow_dispatch` for a manual test.
 
