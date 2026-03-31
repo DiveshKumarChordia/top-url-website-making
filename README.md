@@ -1,6 +1,6 @@
 # Top URL lines — Contentstack front-end
 
-Minimal Vite + React site that lists entries from the Contentstack content type **`top_url_lines`** via the [Content Delivery API](https://www.contentstack.com/docs/developers/apis/content-delivery-api).
+Vite + React app that lists **published** entries for one or more content types through the [Content Delivery API](https://www.contentstack.com/docs/developers/apis/content-delivery-api). The home page includes a small **Three.js** hero (React Three Fiber) for decoration. If you omit `VITE_CONTENTSTACK_CONTENT_TYPE_UIDS`, the app defaults to a single type: **`top_url_lines`**. The repo’s [`.env.example`](.env.example) targets the demo manifest types: `demo_plain_text`, `demo_json_rte`, `demo_reference`, `demo_group`, `demo_blocks` (align this list with what exists in your stack).
 
 ## Local setup
 
@@ -10,15 +10,52 @@ Minimal Vite + React site that lists entries from the Contentstack content type 
    cp .env.example .env
    ```
 
-2. **Variables**
+2. **Environment variables**
+
+   Anything you **do not use** can stay unset. **Optional** below means “not required for that workflow” (for example you can ignore every `CONTENTSTACK_*` line if you never run `npm run automate:*`).
+
+   **Front-end** (`npm run dev`, `npm run build`, Contentstack Launch) — values are `VITE_*` and are embedded in the client bundle.
+
+   *Required*
 
    | Variable | Where to find it |
-   |----------|-------------------|
+   |----------|------------------|
    | `VITE_CONTENTSTACK_API_KEY` | Stack API key |
    | `VITE_CONTENTSTACK_DELIVERY_TOKEN` | Stack → Settings → Tokens → **Delivery Tokens** |
    | `VITE_CONTENTSTACK_ENVIRONMENT` | Environment uid (e.g. `production`) from **Settings → Environments** |
-   | `VITE_CONTENTSTACK_DELIVERY_HOST` | **Content Delivery URL** from Stack → Settings → Stack (no trailing slash) |
-   | `VITE_CONTENTSTACK_CONTENT_TYPE_UIDS` | Optional. Comma-separated content type UIDs to list (default `top_url_lines`). After running `npm run automate:manifest`, include every UID you created (e.g. `top_url_lines,auto_lines_batch_a,auto_lines_batch_b`). |
+   | `VITE_CONTENTSTACK_DELIVERY_HOST` | **Content Delivery URL** from Stack → Settings → Stack. Must match that URL exactly, with **no trailing slash** (e.g. `https://cdn.contentstack.io`). |
+
+   *Optional*
+
+   | Variable | Purpose |
+   |----------|---------|
+   | `VITE_CONTENTSTACK_CONTENT_TYPE_UIDS` | Comma-separated content type UIDs to list. If **omitted**, the app defaults to **`top_url_lines`**. Use the demo list in [`.env.example`](.env.example) only if those types exist in your stack. |
+
+   **Automation** (`npm run automate:*` with Node 20+ and `node --env-file=.env`) — **skip entirely** if you only build or host the site.
+
+   *Required when using automation*
+
+   | Variable | Purpose |
+   |----------|---------|
+   | `CONTENTSTACK_MANAGEMENT_TOKEN` | CMA management token |
+   | `CONTENTSTACK_API_KEY` or `VITE_CONTENTSTACK_API_KEY` | Stack API key (either name) |
+   | `CONTENTSTACK_PUBLISH_ENVIRONMENT` or `VITE_CONTENTSTACK_ENVIRONMENT` | Target environment uid for publish / API filters |
+
+   *Optional (omit if you do not need that behavior; scripts use defaults where noted)*
+
+   | Variable | Purpose |
+   |----------|---------|
+   | `CONTENTSTACK_MANAGEMENT_HOST` | CMA base (default `https://api.contentstack.io` in code) |
+   | `CONTENTSTACK_BRANCH` | Branch uid (e.g. `main`); omitted from requests if unset |
+   | `CONTENTSTACK_LOCALE` | Default `en-us` in code if unset |
+   | `CONTENTSTACK_MANIFEST_PATH` | Custom manifest path (default `scripts/content-types.manifest.json`) |
+   | `CONTENTSTACK_PERIODIC_COUNT` | Batch size per `periodic.enabled` type when manifest `periodic.count` is omitted |
+   | `CONTENTSTACK_MANIFEST_SKIP_SEEDS` | `true` = bootstrap without POSTing seed entries |
+   | `CONTENTSTACK_MANIFEST_SKIP_DUPLICATE_SEEDS` | Duplicate seed titles: skip + hydrate refs unless set to `false` |
+   | `CONTENTSTACK_AUTO_ENTRY_TITLE` | Fixed title for `npm run automate:entry` only |
+   | `CONTENTSTACK_TAXONOMY_UID_*` / `CONTENTSTACK_TAXONOMY_TERMS_*` | Only if you use taxonomy shorthand or `__TAX_TERMS__` placeholders ([AUTOMATION.md](./AUTOMATION.md)) |
+
+   Full commented template: **[`.env.example`](.env.example)**. Secrets, placeholders, and cron: **[AUTOMATION.md](./AUTOMATION.md)**.
 
 3. **Publish content** — The Delivery API returns only **published** entries. Unpublished items will not appear until you publish them to the environment you set in `VITE_CONTENTSTACK_ENVIRONMENT`.
 
@@ -29,7 +66,14 @@ Minimal Vite + React site that lists entries from the Contentstack content type 
    npm run dev
    ```
 
-5. Production build:
+5. Other scripts:
+
+   ```bash
+   npm run lint      # ESLint
+   npm run preview   # local preview of production build (after build)
+   ```
+
+6. Production build:
 
    ```bash
    npm run build
@@ -138,7 +182,7 @@ Details, secrets, and placeholders: **[AUTOMATION.md](./AUTOMATION.md)**.
    | Build | `npm run build` |
    | Output directory | `dist` |
 
-5. Add the same four **`VITE_CONTENTSTACK_*`** variables in Launch **Environment variables** for production builds.
+5. In Launch **Environment variables**, set the **four required** `VITE_CONTENTSTACK_*` keys (`API_KEY`, `DELIVERY_TOKEN`, `ENVIRONMENT`, `DELIVERY_HOST`). Add **`VITE_CONTENTSTACK_CONTENT_TYPE_UIDS`** only if you want types other than the default `top_url_lines`; it is **optional**.
 6. Use Node **20** (or current LTS) in the project settings if the default Node version fails the build.
 
 Optional: trigger redeploys when content publishes (webhook, GitHub Action, or Launch deploy hook). For **multi-field manifests**, **`npm run automate:manifest`**, **`npm run automate:entries:periodic`** (every 10 minutes via [`.github/workflows/contentstack-periodic-entries.yml`](.github/workflows/contentstack-periodic-entries.yml)), and taxonomy/reference placeholders, see **[AUTOMATION.md](./AUTOMATION.md)**.

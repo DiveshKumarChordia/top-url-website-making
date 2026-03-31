@@ -41,20 +41,33 @@ For each taxonomy field `uid` (e.g. `categories`):
 
 ### Environment variables (scripts)
 
+Variables you **do not use** can be omitted. The **optional** rows apply only when you need that behavior (e.g. skip taxonomy env if you have no taxonomy fields).
+
+**Required** (any `npm run automate:*` that talks to the CMA):
+
 | Variable | Purpose |
 |----------|---------|
-| `CONTENTSTACK_MANAGEMENT_TOKEN` | Required |
+| `CONTENTSTACK_MANAGEMENT_TOKEN` | Management token |
 | `VITE_CONTENTSTACK_API_KEY` or `CONTENTSTACK_API_KEY` | Stack API key |
-| `CONTENTSTACK_MANAGEMENT_HOST` | CMA base (often `https://api.contentstack.io`) |
-| `CONTENTSTACK_BRANCH` | e.g. `main` |
-| `CONTENTSTACK_LOCALE` | e.g. `en-us` |
-| `VITE_CONTENTSTACK_ENVIRONMENT` or `CONTENTSTACK_PUBLISH_ENVIRONMENT` | Publish + list filters |
-| `CONTENTSTACK_MANIFEST_PATH` | Optional path to manifest JSON |
-| `CONTENTSTACK_PERIODIC_COUNT` | Repeat count per `periodic.enabled` type when **`periodic.count` is omitted** (each run creates this many entries **per** type) |
+| `VITE_CONTENTSTACK_ENVIRONMENT` or `CONTENTSTACK_PUBLISH_ENVIRONMENT` | Publish target + environment filters |
+
+**Optional** (defaults or behavior toggles; omit if unused):
+
+| Variable | Purpose |
+|----------|---------|
+| `CONTENTSTACK_MANAGEMENT_HOST` | CMA base; default `https://api.contentstack.io` in [`scripts/lib/cma.mjs`](scripts/lib/cma.mjs) |
+| `CONTENTSTACK_BRANCH` | Branch uid; left off CMA headers when unset |
+| `CONTENTSTACK_LOCALE` | Default `en-us` when unset |
+| `CONTENTSTACK_MANIFEST_PATH` | Override path to manifest JSON |
+| `CONTENTSTACK_PERIODIC_COUNT` | Entries per `periodic.enabled` type per run when manifest **`periodic.count` is omitted** |
+| `CONTENTSTACK_MANIFEST_SKIP_SEEDS` | `true`: bootstrap without seed POSTs (see manifest `skipSeedEntries`) |
+| `CONTENTSTACK_MANIFEST_SKIP_DUPLICATE_SEEDS` | Not `false`: skip duplicate seed titles and hydrate refs (see **Idempotency**) |
+| `CONTENTSTACK_AUTO_ENTRY_TITLE` | **`automate:entry`** title override |
+| `CONTENTSTACK_TAXONOMY_UID_*` / `CONTENTSTACK_TAXONOMY_TERMS_*` | Taxonomy shorthand / `__TAX_TERMS__` only (see **Taxonomy fields**) |
 
 ## Front-end / Launch
 
-Set **`VITE_CONTENTSTACK_CONTENT_TYPE_UIDS`** to a comma-separated list of every type you want listed (e.g. `demo_plain_text,demo_json_rte,...`). Mirror the same in **Launch** env vars.
+**Optional:** set **`VITE_CONTENTSTACK_CONTENT_TYPE_UIDS`** to a comma-separated list of types to list; if **omitted**, the app defaults to **`top_url_lines`** only. Mirror the same in **Launch** when you use it.
 
 ## GitHub Actions (every 10 minutes, UTC)
 
@@ -70,7 +83,7 @@ Configure repository **Secrets** — use these **exact** names (or edit the work
 
 Optional:
 
-- `CONTENTSTACK_MANAGEMENT_HOST`, `CONTENTSTACK_BRANCH`, `CONTENTSTACK_LOCALE`, `CONTENTSTACK_MANIFEST_PATH`, `CONTENTSTACK_PERIODIC_COUNT`
+- `CONTENTSTACK_MANAGEMENT_HOST`, `CONTENTSTACK_BRANCH`, `CONTENTSTACK_LOCALE`, `CONTENTSTACK_MANIFEST_PATH`, `CONTENTSTACK_PERIODIC_COUNT`, `CONTENTSTACK_MANIFEST_SKIP_SEEDS`, `CONTENTSTACK_MANIFEST_SKIP_DUPLICATE_SEEDS` (only if you pass them through the workflow `env` block)
 
 Cron `*/10 * * * *` runs in **UTC**. Use `workflow_dispatch` for a manual test.
 
