@@ -1,0 +1,29 @@
+name: Contentstack periodic entries
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  periodic:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - name: Run periodic entry script
+        env:
+          CONTENTSTACK_API_KEY: ${{ secrets.CONTENTSTACK_API_KEY }}
+          VITE_CONTENTSTACK_API_KEY: ${{ secrets.VITE_CONTENTSTACK_API_KEY }}
+          CONTENTSTACK_MANAGEMENT_TOKEN: ${{ secrets.CONTENTSTACK_MANAGEMENT_TOKEN }}
+          CONTENTSTACK_MANAGEMENT_HOST: ${{ secrets.CONTENTSTACK_MANAGEMENT_HOST }}
+          CONTENTSTACK_BRANCH: ${{ secrets.CONTENTSTACK_BRANCH }}
+          CONTENTSTACK_LOCALE: ${{ secrets.CONTENTSTACK_LOCALE }}
+          CONTENTSTACK_PUBLISH_ENVIRONMENT: ${{ secrets.CONTENTSTACK_PUBLISH_ENVIRONMENT }}
+          VITE_CONTENTSTACK_ENVIRONMENT: ${{ secrets.VITE_CONTENTSTACK_ENVIRONMENT }}
+          CONTENTSTACK_MANIFEST_PATH: ${{ secrets.CONTENTSTACK_MANIFEST_PATH }}
+          CONTENTSTACK_PERIODIC_COUNT: ${{ secrets.CONTENTSTACK_PERIODIC_COUNT }}
+        run: npm run automate:entries:periodic

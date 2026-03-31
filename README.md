@@ -18,6 +18,7 @@ Minimal Vite + React site that lists entries from the Contentstack content type 
    | `VITE_CONTENTSTACK_DELIVERY_TOKEN` | Stack → Settings → Tokens → **Delivery Tokens** |
    | `VITE_CONTENTSTACK_ENVIRONMENT` | Environment uid (e.g. `production`) from **Settings → Environments** |
    | `VITE_CONTENTSTACK_DELIVERY_HOST` | **Content Delivery URL** from Stack → Settings → Stack (no trailing slash) |
+   | `VITE_CONTENTSTACK_CONTENT_TYPE_UIDS` | Optional. Comma-separated content type UIDs to list (default `top_url_lines`). After running `npm run automate:manifest`, include every UID you created (e.g. `top_url_lines,auto_lines_batch_a,auto_lines_batch_b`). |
 
 3. **Publish content** — The Delivery API returns only **published** entries. Unpublished items will not appear until you publish them to the environment you set in `VITE_CONTENTSTACK_ENVIRONMENT`.
 
@@ -56,7 +57,7 @@ Minimal Vite + React site that lists entries from the Contentstack content type 
 5. Add the same four **`VITE_CONTENTSTACK_*`** variables in Launch **Environment variables** for production builds.
 6. Use Node **20** (or current LTS) in the project settings if the default Node version fails the build.
 
-Optional: trigger redeploys when content publishes (webhook, GitHub Action, or Launch deploy hook).
+Optional: trigger redeploys when content publishes (webhook, GitHub Action, or Launch deploy hook). For **multi-field manifests**, **`npm run automate:manifest`**, **`npm run automate:entries:periodic`** (every 10 minutes via [`.github/workflows/contentstack-periodic-entries.yml`](.github/workflows/contentstack-periodic-entries.yml)), and taxonomy/reference placeholders, see **[AUTOMATION.md](./AUTOMATION.md)**.
 
 ## References
 

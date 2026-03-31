@@ -27,6 +27,40 @@
 
 .lede code {
   font-size: 0.9em;
+  margin-right: 0.35rem;
+}
+
+.lede__hint {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.ct-section {
+  margin-bottom: 2rem;
+}
+
+.ct-section__heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 1rem;
+  margin: 0 0 0.75rem;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.ct-section__count {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--text);
+}
+
+.ct-section__empty {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.95rem;
 }
 
 .status {

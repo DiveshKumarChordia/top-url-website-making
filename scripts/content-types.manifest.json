@@ -1,0 +1,256 @@
+{
+  "$comment": "Manifest order matters: referenced types must appear before reference_fields. For taxonomy, add a content type with data_type taxonomy and set CONTENTSTACK_TAXONOMY_UID_<FIELDUID> and CONTENTSTACK_TAXONOMY_TERMS_<FIELDUID> (see AUTOMATION.md).",
+  "skipSeedEntries": false,
+  "skipDuplicateSeedTitles": true,
+  "defaults": {
+    "periodicCount": 1
+  },
+  "contentTypes": [
+    {
+      "uid": "demo_plain_text",
+      "title": "Demo Plain Text Fields",
+      "useDefaultTitleSchema": true,
+      "fields": [
+        {
+          "data_type": "text",
+          "display_name": "Single Line Text",
+          "uid": "single_line"
+        },
+        {
+          "data_type": "textarea",
+          "display_name": "Multi Line Text",
+          "uid": "multi_line"
+        },
+        {
+          "data_type": "markdown",
+          "display_name": "Markdown",
+          "uid": "markdown_body"
+        },
+        {
+          "data_type": "date",
+          "display_name": "Date",
+          "uid": "date_field"
+        },
+        {
+          "data_type": "number",
+          "display_name": "Number",
+          "uid": "number_field"
+        },
+        {
+          "data_type": "boolean",
+          "display_name": "Toggle",
+          "uid": "toggle_field"
+        }
+      ],
+      "entries": [
+        {
+          "title": "Plain text demo — seed A",
+          "single_line": "Intro line A",
+          "multi_line": "Longer description for seed A.",
+          "markdown_body": "## Header A\n- item",
+          "date_field": "2026-04-01T12:00:00.000Z",
+          "number_field": 42,
+          "toggle_field": true
+        },
+        {
+          "title": "Plain text demo — seed B",
+          "single_line": "Intro line B",
+          "multi_line": "Longer description for seed B.",
+          "markdown_body": "## Header B\n- item",
+          "date_field": "2026-04-02T12:00:00.000Z",
+          "number_field": 7,
+          "toggle_field": false
+        }
+      ],
+      "periodic": {
+        "enabled": true,
+        "count": 1,
+        "entryTemplate": {
+          "single_line": "periodic single",
+          "multi_line": "periodic multi line body",
+          "markdown_body": "## Periodic\nautomated",
+          "date_field": "2026-04-01T12:00:00.000Z",
+          "number_field": 0,
+          "toggle_field": false
+        }
+      }
+    },
+    {
+      "uid": "demo_json_rte",
+      "title": "Demo JSON Rich Text",
+      "useDefaultTitleSchema": true,
+      "fields": [
+        {
+          "data_type": "json_rte",
+          "display_name": "JSON body",
+          "uid": "json_body"
+        }
+      ],
+      "entries": [
+        {
+          "title": "JSON RTE — seed",
+          "json_body": {
+            "type": "doc",
+            "children": [
+              {
+                "type": "paragraph",
+                "children": [{ "text": "Hello from JSON RTE seed." }]
+              }
+            ]
+          }
+        }
+      ],
+      "periodic": {
+        "enabled": true,
+        "count": 1,
+        "entryTemplate": {
+          "json_body": {
+            "type": "doc",
+            "children": [
+              {
+                "type": "paragraph",
+                "children": [{ "text": "Periodic JSON RTE entry." }]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "uid": "demo_reference",
+      "title": "Demo References",
+      "useDefaultTitleSchema": true,
+      "fields": [
+        {
+          "data_type": "reference",
+          "display_name": "Link to plain demo",
+          "uid": "page_ref",
+          "reference_to": "demo_plain_text"
+        },
+        {
+          "data_type": "reference",
+          "display_name": "Multiple plain demos",
+          "uid": "pages_refs",
+          "reference_to": "demo_plain_text",
+          "multiple": true
+        }
+      ],
+      "entries": [
+        {
+          "title": "Reference demo — seed",
+          "page_ref": "__REF__:demo_plain_text:first",
+          "pages_refs": [
+            "__REF__:demo_plain_text:first",
+            "__REF__:demo_plain_text:latest"
+          ]
+        }
+      ]
+    },
+    {
+      "uid": "demo_group",
+      "title": "Demo Group",
+      "useDefaultTitleSchema": true,
+      "fields": [
+        {
+          "data_type": "group",
+          "display_name": "Author Group",
+          "uid": "author_group",
+          "fields": [
+            {
+              "data_type": "text",
+              "display_name": "Name",
+              "uid": "name"
+            },
+            {
+              "data_type": "text",
+              "display_name": "Email",
+              "uid": "email"
+            }
+          ]
+        }
+      ],
+      "entries": [
+        {
+          "title": "Group demo — seed",
+          "author_group": {
+            "name": "Alice",
+            "email": "alice@example.com"
+          }
+        }
+      ],
+      "periodic": {
+        "enabled": true,
+        "count": 1,
+        "entryTemplate": {
+          "author_group": {
+            "name": "Periodic Author",
+            "email": "periodic@example.com"
+          }
+        }
+      }
+    },
+    {
+      "uid": "demo_blocks",
+      "title": "Demo Modular Blocks",
+      "useDefaultTitleSchema": true,
+      "fields": [
+        {
+          "data_type": "blocks",
+          "display_name": "Sections",
+          "uid": "sections",
+          "blocks": [
+            {
+              "uid": "hero",
+              "title": "Hero",
+              "fields": [
+                {
+                  "data_type": "text",
+                  "display_name": "Heading",
+                  "uid": "heading"
+                },
+                {
+                  "data_type": "textarea",
+                  "display_name": "Subtext",
+                  "uid": "subtext"
+                }
+              ]
+            },
+            {
+              "uid": "stat",
+              "title": "Stat",
+              "fields": [
+                {
+                  "data_type": "text",
+                  "display_name": "Label",
+                  "uid": "label"
+                },
+                {
+                  "data_type": "number",
+                  "display_name": "Value",
+                  "uid": "value"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "entries": [
+        {
+          "title": "Blocks demo — seed",
+          "sections": [
+            {
+              "block_type": "hero",
+              "heading": "Welcome",
+              "subtext": "Intro text"
+            },
+            {
+              "block_type": "stat",
+              "label": "Users",
+              "value": 1000
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
