@@ -140,7 +140,7 @@ export default function App() {
   const [error, setError] = useState(null)
   const { environment: envUid } = getConfig()
 
-  useEffect(() => {
+  const reloadEntries = useCallback(async () => {
     const { apiKey, deliveryToken, environment, deliveryHost } = getConfig()
 
     if (!apiKey || !deliveryToken || !deliveryHost) {
@@ -148,54 +148,55 @@ export default function App() {
       setError(
         'Missing configuration. Copy .env.example to .env and set VITE_CONTENTSTACK_* variables.',
       )
+      setSections([])
       return
     }
 
     const contentTypeUids = parseContentTypeUids()
 
-    async function load() {
-      setLoading(true)
-      setError(null)
-      try {
-        const results = await Promise.all(
-          contentTypeUids.map(async (uid) => {
-            const url = buildEntriesUrl(deliveryHost, environment, uid)
-            const res = await fetch(url, {
-              headers: {
-                api_key: apiKey,
-                access_token: deliveryToken,
-              },
-            })
-            const body = await res.json().catch(() => ({}))
-            if (!res.ok) {
-              const msg =
-                body.error_message ||
-                body.error ||
-                `${res.status} ${res.statusText || 'Request failed'}`
-              throw new Error(
-                `${uid}: ${typeof msg === 'string' ? msg : JSON.stringify(msg)}`,
-              )
-            }
-            const list = Array.isArray(body.entries) ? body.entries : []
-            const sorted = [...list].sort((a, b) => {
-              const ta = a.updated_at ? new Date(a.updated_at).getTime() : 0
-              const tb = b.updated_at ? new Date(b.updated_at).getTime() : 0
-              return tb - ta
-            })
-            return { contentTypeUid: uid, entries: sorted }
-          }),
-        )
-        setSections(results)
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to load entries')
-        setSections([])
-      } finally {
-        setLoading(false)
-      }
+    setLoading(true)
+    setError(null)
+    try {
+      const results = await Promise.all(
+        contentTypeUids.map(async (uid) => {
+          const url = buildEntriesUrl(deliveryHost, environment, uid)
+          const res = await fetch(url, {
+            headers: {
+              api_key: apiKey,
+              access_token: deliveryToken,
+            },
+          })
+          const body = await res.json().catch(() => ({}))
+          if (!res.ok) {
+            const msg =
+              body.error_message ||
+              body.error ||
+              `${res.status} ${res.statusText || 'Request failed'}`
+            throw new Error(
+              `${uid}: ${typeof msg === 'string' ? msg : JSON.stringify(msg)}`,
+            )
+          }
+          const list = Array.isArray(body.entries) ? body.entries : []
+          const sorted = [...list].sort((a, b) => {
+            const ta = a.updated_at ? new Date(a.updated_at).getTime() : 0
+            const tb = b.updated_at ? new Date(b.updated_at).getTime() : 0
+            return tb - ta
+          })
+          return { contentTypeUid: uid, entries: sorted }
+        }),
+      )
+      setSections(results)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load entries')
+      setSections([])
+    } finally {
+      setLoading(false)
     }
-
-    load()
   }, [])
+
+  useEffect(() => {
+    void reloadEntries()
+  }, [reloadEntries])
 
   const contentTypeUids = parseContentTypeUids()
   const totalEntries = sections.reduce((n, s) => n + s.entries.length, 0)
@@ -211,11 +212,23 @@ export default function App() {
               <p className="site-header__subtitle">Delivery preview</p>
             </div>
           </div>
-          {envUid ? (
-            <span className="env-badge" title="VITE_CONTENTSTACK_ENVIRONMENT">
-              {envUid}
-            </span>
-          ) : null}
+          <div className="site-header__actions">
+            <button
+              type="button"
+              className="site-header__refresh"
+              onClick={() => void reloadEntries()}
+              disabled={loading}
+              aria-busy={loading}
+              aria-label="Reload entries from Contentstack"
+            >
+              {loading ? 'Loading…' : 'Refresh'}
+            </button>
+            {envUid ? (
+              <span className="env-badge" title="VITE_CONTENTSTACK_ENVIRONMENT">
+                {envUid}
+              </span>
+            ) : null}
+          </div>
         </div>
       </header>
 
