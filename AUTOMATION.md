@@ -74,7 +74,7 @@ Variables you **do not use** can be omitted. **`Recommended`** rows should match
 
 **Optional:** set **`VITE_CONTENTSTACK_CONTENT_TYPE_UIDS`** to a comma-separated list of types to list; if **omitted**, the app defaults to **`top_url_lines`** only. Mirror the same in **Launch** when you use it.
 
-## GitHub Actions (every 10 minutes, UTC)
+## GitHub Actions (every 5 minutes, UTC)
 
 Workflow: [`.github/workflows/contentstack-periodic-entries.yml`](.github/workflows/contentstack-periodic-entries.yml).
 
@@ -109,9 +109,16 @@ Optional workflow extras (only if you add them to the workflow `env` block):
 
 - `CONTENTSTACK_MANIFEST_PATH`, `CONTENTSTACK_PERIODIC_COUNT`, `CONTENTSTACK_MANIFEST_SKIP_SEEDS`, `CONTENTSTACK_MANIFEST_SKIP_DUPLICATE_SEEDS`
 
-Cron `*/10 * * * *` runs in **UTC**. Use `workflow_dispatch` for a manual test.
+Optional **warm-up** step (POST-CMA GETs): `VITE_CONTENTSTACK_DELIVERY_HOST`, `VITE_CONTENTSTACK_DELIVERY_TOKEN`, `VITE_CONTENTSTACK_CONTENT_TYPE_UIDS`, plus API key / environment secrets as listed above; `LAUNCH_SITE_URL` to override the default hosted site URL.
 
-**Write volume** — Every 10 minutes produces many entries over time; watch **Management API rate limits** and stack hygiene (retention / cleanup).
+Cron `*/5 * * * *` runs in **UTC** (every five minutes). Use `workflow_dispatch` for a manual test.
+
+After the periodic script succeeds, the workflow **GETs** (optional but recommended):
+
+1. Your **Launch / hosted site** URL (default `https://top-url-website-making.dev22contentstackapps.com/`, overridable via secret **`LAUNCH_SITE_URL`**).
+2. The same **Content Delivery API** URLs the browser uses: `GET …/v3/content_types/{uid}/entries?environment=…` for each UID in **`VITE_CONTENTSTACK_CONTENT_TYPE_UIDS`**, with `api_key` and `access_token` headers. Set **`VITE_CONTENTSTACK_DELIVERY_HOST`**, **`VITE_CONTENTSTACK_DELIVERY_TOKEN`**, **`VITE_CONTENTSTACK_API_KEY`** (or stack key secret), **`VITE_CONTENTSTACK_ENVIRONMENT`** (or publish env secret), and **`VITE_CONTENTSTACK_CONTENT_TYPE_UIDS`** as repository secrets to enable this step.
+
+**Write volume** — Every five minutes produces more entries over time; watch **Management API rate limits** and stack hygiene (retention / cleanup).
 
 ### Contentstack Automation Hub (alternative to GitHub `schedule`)
 
@@ -119,7 +126,7 @@ If you prefer running on a timer **inside Contentstack** (or GitHub’s cron is 
 
 **Pattern**
 
-1. **Trigger:** [Scheduler by Automate](https://www.contentstack.com/docs/developers/automation-hub-connectors/scheduler-by-automation-hub) — set your interval (e.g. every 10 minutes) in the Automation Hub UI.
+1. **Trigger:** [Scheduler by Automate](https://www.contentstack.com/docs/developers/automation-hub-connectors/scheduler-by-automation-hub) — set your interval (e.g. every five minutes) in the Automation Hub UI.
 2. **Action:** [HTTP Action](https://www.contentstack.com/docs/developers/automation-hub-connectors/http-action) — **POST** to the GitHub **workflow dispatch** API so only `workflow_dispatch` runs (not a duplicate custom script).
 
 **HTTP Action settings**

@@ -114,7 +114,7 @@ For each content type in [`scripts/content-types.manifest.json`](scripts/content
 
 **This repo’s demo manifest omits `periodic.count`**, so `CONTENTSTACK_PERIODIC_COUNT` (or `defaults.periodicCount`) applies. If you **add** a numeric `periodic.count` on a content type, it overrides the secret for that type only.
 
-Example write volume: **3** enabled types × **20** entries × **6** runs/hour (cron every 10 min) ⇒ **360** new entries/hour until you lower the secret, add per-type `periodic.count`, or change the schedule.
+Example write volume: **3** enabled types × **20** entries × **12** runs/hour (cron every 5 min) ⇒ **720** new entries/hour until you lower the secret, add per-type `periodic.count`, or change the schedule.
 
 ### Diagrams (Mermaid)
 
@@ -200,7 +200,7 @@ Details, secrets, and placeholders: **[AUTOMATION.md](./AUTOMATION.md)**.
 5. In Launch **Environment variables**, set the **four required** `VITE_CONTENTSTACK_*` keys (`API_KEY`, `DELIVERY_TOKEN`, `ENVIRONMENT`, `DELIVERY_HOST`). Add **`VITE_CONTENTSTACK_CONTENT_TYPE_UIDS`** only if you want types other than the default `top_url_lines`; it is **optional**.
 6. Use Node **20** (or current LTS) in the project settings if the default Node version fails the build.
 
-Optional: trigger redeploys when content publishes (webhook, GitHub Action, or Launch deploy hook). For **multi-field manifests**, **`npm run automate:manifest`**, **`npm run automate:entries:periodic`** (every 10 minutes via [`.github/workflows/contentstack-periodic-entries.yml`](.github/workflows/contentstack-periodic-entries.yml)), and taxonomy/reference placeholders, see **[AUTOMATION.md](./AUTOMATION.md)**.
+Optional: trigger redeploys when content publishes (webhook, GitHub Action, or Launch deploy hook). For **multi-field manifests**, **`npm run automate:manifest`**, **`npm run automate:entries:periodic`** (every **5** minutes via [`.github/workflows/contentstack-periodic-entries.yml`](.github/workflows/contentstack-periodic-entries.yml); optional **Delivery** GET warm-up step), and taxonomy/reference placeholders, see **[AUTOMATION.md](./AUTOMATION.md)**.
 
 ## References
 
