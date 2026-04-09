@@ -142,7 +142,17 @@
             "__REF__:demo_plain_text:latest"
           ]
         }
-      ]
+      ],
+      "periodic": {
+        "enabled": true,
+        "entryTemplate": {
+          "page_ref": "__REF__:demo_plain_text:latest",
+          "pages_refs": [
+            "__REF__:demo_plain_text:first",
+            "__REF__:demo_plain_text:latest"
+          ]
+        }
+      }
     },
     {
       "uid": "demo_group",
@@ -247,7 +257,24 @@
             }
           ]
         }
-      ]
+      ],
+      "periodic": {
+        "enabled": true,
+        "entryTemplate": {
+          "sections": [
+            {
+              "block_type": "hero",
+              "heading": "Periodic hero",
+              "subtext": "Automated modular blocks entry"
+            },
+            {
+              "block_type": "stat",
+              "label": "Periodic metric",
+              "value": 1
+            }
+          ]
+        }
+      }
     }
   ]
 }

@@ -251,11 +251,10 @@ export default function App() {
 
       if (okSections.length === 0 && contentTypeUids.length > 0) {
         const allSkipped = skipped.length === contentTypeUids.length
-        setError(
-          allSkipped
-            ? 'None of the configured content types exist on this stack. Run npm run automate:manifest for this stack, or set VITE_CONTENTSTACK_CONTENT_TYPE_UIDS to types that exist.'
-            : 'No content could be loaded for the configured types.',
-        )
+        if (!allSkipped) {
+          setError('No content could be loaded for the configured types.')
+        }
+        /* allSkipped: no setError — neutral banner + guide (not a Delivery “failure”) */
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load entries')
@@ -413,17 +412,34 @@ export default function App() {
 
         {!loading && !error && skippedTypes.length > 0 ? (
           <div className="banner banner--neutral" role="status">
-            <strong className="banner__title">Some types are not on this stack</strong>
+            <strong className="banner__title">
+              {skippedTypes.length === contentTypeUids.length
+                ? 'None of these content types exist on this stack yet'
+                : 'Some types are not on this stack'}
+            </strong>
             <p className="banner__text">
-              Skipped:{' '}
-              {skippedTypes.map((s) => s.uid).join(', ')}. Run{' '}
-              <code>npm run automate:manifest</code> for this stack, or remove them
-              from <code>VITE_CONTENTSTACK_CONTENT_TYPE_UIDS</code>.
+              {skippedTypes.length === contentTypeUids.length ? (
+                <>
+                  Configured UIDs:{' '}
+                  <code>{skippedTypes.map((s) => s.uid).join(', ')}</code>. Run{' '}
+                  <code>npm run automate:manifest</code> with this stack’s credentials
+                  to create them, or set{' '}
+                  <code>VITE_CONTENTSTACK_CONTENT_TYPE_UIDS</code> in Launch to UIDs
+                  that already exist (e.g. <code>top_url_lines</code>).
+                </>
+              ) : (
+                <>
+                  Skipped:{' '}
+                  {skippedTypes.map((s) => s.uid).join(', ')}. Run{' '}
+                  <code>npm run automate:manifest</code> for this stack, or remove
+                  them from <code>VITE_CONTENTSTACK_CONTENT_TYPE_UIDS</code>.
+                </>
+              )}
             </p>
           </div>
         ) : null}
 
-        {!loading && !error && totalEntries === 0 ? (
+        {!loading && !error && sections.length > 0 && totalEntries === 0 ? (
           <div className="banner banner--neutral">
             <strong className="banner__title">No entries yet</strong>
             <p className="banner__text">
