@@ -92,7 +92,7 @@ Vite + React app that lists **published** entries for one or more content types 
 
 ## Architecture & automation (overview)
 
-The GitHub periodic workflow uses **repository** secrets only; if **environment** secrets (per deployment environment) are empty in Settings, that is expected—see **[AUTOMATION.md — Repository vs environment secrets](AUTOMATION.md#repository-secrets-vs-environment-secrets-github)**.
+The GitHub periodic workflow runs one job per **GitHub Environment** (multi-instance); put Contentstack credentials on **each** environment and list their names in **`CONTENTSTACK_PERIODIC_ENVIRONMENTS_JSON`**—see **[AUTOMATION.md — GitHub Actions](AUTOMATION.md#github-actions-every-5-minutes-utc)**.
 
 Typical use cases:
 

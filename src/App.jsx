@@ -55,6 +55,23 @@ function buildEntriesUrl(deliveryHost, environment, contentTypeUid) {
   return q ? `${base}?${q}` : base
 }
 
+function deliveryResponseMessage(body, res) {
+  const msg =
+    body.error_message ??
+    body.error ??
+    `${res.status} ${res.statusText || 'Request failed'}`
+  return typeof msg === 'string' ? msg : JSON.stringify(msg)
+}
+
+/** Delivery 404/422 often means the content type uid does not exist on this stack. */
+function isMissingContentTypeError(res, message) {
+  if (res.status === 404 || res.status === 422) return true
+  const m = message.toLowerCase()
+  if (m.includes('content type') && m.includes('not found')) return true
+  if (m.includes('was not found')) return true
+  return false
+}
+
 function formatUpdatedAt(iso) {
   if (!iso) return null
   try {
@@ -177,6 +194,7 @@ export default function App() {
   const [sections, setSections] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [skippedTypes, setSkippedTypes] = useState([])
   const [digestFilter, setDigestFilter] = useState(null)
   const { environment: envUid } = getConfig()
 
@@ -189,6 +207,7 @@ export default function App() {
         'Missing configuration. Copy .env.example to .env and set VITE_CONTENTSTACK_* variables.',
       )
       setSections([])
+      setSkippedTypes([])
       return
     }
 
@@ -196,39 +215,52 @@ export default function App() {
 
     setLoading(true)
     setError(null)
+    setSkippedTypes([])
     try {
-      const results = await Promise.all(
-        contentTypeUids.map(async (uid) => {
-          const url = buildEntriesUrl(deliveryHost, environment, uid)
-          const res = await fetch(url, {
-            headers: {
-              api_key: apiKey,
-              access_token: deliveryToken,
-            },
-          })
-          const body = await res.json().catch(() => ({}))
-          if (!res.ok) {
-            const msg =
-              body.error_message ||
-              body.error ||
-              `${res.status} ${res.statusText || 'Request failed'}`
-            throw new Error(
-              `${uid}: ${typeof msg === 'string' ? msg : JSON.stringify(msg)}`,
-            )
+      const okSections = []
+      const skipped = []
+
+      for (const uid of contentTypeUids) {
+        const url = buildEntriesUrl(deliveryHost, environment, uid)
+        const res = await fetch(url, {
+          headers: {
+            api_key: apiKey,
+            access_token: deliveryToken,
+          },
+        })
+        const body = await res.json().catch(() => ({}))
+        if (!res.ok) {
+          const msg = deliveryResponseMessage(body, res)
+          if (isMissingContentTypeError(res, msg)) {
+            skipped.push({ uid, detail: msg })
+            continue
           }
-          const list = Array.isArray(body.entries) ? body.entries : []
-          const sorted = [...list].sort((a, b) => {
-            const ta = a.updated_at ? new Date(a.updated_at).getTime() : 0
-            const tb = b.updated_at ? new Date(b.updated_at).getTime() : 0
-            return tb - ta
-          })
-          return { contentTypeUid: uid, entries: sorted }
-        }),
-      )
-      setSections(results)
+          throw new Error(`${uid}: ${msg}`)
+        }
+        const list = Array.isArray(body.entries) ? body.entries : []
+        const sorted = [...list].sort((a, b) => {
+          const ta = a.updated_at ? new Date(a.updated_at).getTime() : 0
+          const tb = b.updated_at ? new Date(b.updated_at).getTime() : 0
+          return tb - ta
+        })
+        okSections.push({ contentTypeUid: uid, entries: sorted })
+      }
+
+      setSections(okSections)
+      setSkippedTypes(skipped)
+
+      if (okSections.length === 0 && contentTypeUids.length > 0) {
+        const allSkipped = skipped.length === contentTypeUids.length
+        setError(
+          allSkipped
+            ? 'None of the configured content types exist on this stack. Run npm run automate:manifest for this stack, or set VITE_CONTENTSTACK_CONTENT_TYPE_UIDS to types that exist.'
+            : 'No content could be loaded for the configured types.',
+        )
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load entries')
       setSections([])
+      setSkippedTypes([])
     } finally {
       setLoading(false)
     }
@@ -238,7 +270,21 @@ export default function App() {
     void reloadEntries()
   }, [reloadEntries])
 
+  useEffect(() => {
+    const loaded = new Set(sections.map((s) => s.contentTypeUid))
+    if (digestFilter != null && !loaded.has(digestFilter)) {
+      setDigestFilter(null)
+    }
+  }, [sections, digestFilter])
+
   const contentTypeUids = parseContentTypeUids()
+  const filterUids = useMemo(
+    () =>
+      contentTypeUids.filter((uid) =>
+        sections.some((s) => s.contentTypeUid === uid),
+      ),
+    [contentTypeUids, sections],
+  )
   const totalEntries = sections.reduce((n, s) => n + s.entries.length, 0)
 
   const digestItems = useMemo(() => {
@@ -307,7 +353,16 @@ export default function App() {
           </p>
           {!loading && !error ? (
             <p className="page__intro-meta" aria-live="polite">
-              <strong>{contentTypeUids.length}</strong> types ·{' '}
+              {skippedTypes.length > 0 ? (
+                <>
+                  <strong>{sections.length}</strong> of{' '}
+                  <strong>{contentTypeUids.length}</strong> types loaded ·{' '}
+                </>
+              ) : (
+                <>
+                  <strong>{contentTypeUids.length}</strong> types ·{' '}
+                </>
+              )}
               <strong>{totalEntries}</strong> entries
             </p>
           ) : null}
@@ -330,7 +385,7 @@ export default function App() {
             >
               All
             </button>
-            {contentTypeUids.map((uid) => (
+            {filterUids.map((uid) => (
               <button
                 key={uid}
                 type="button"
@@ -353,6 +408,18 @@ export default function App() {
           <div className="banner banner--error" role="alert">
             <strong className="banner__title">Something went wrong</strong>
             <p className="banner__text">{error}</p>
+          </div>
+        ) : null}
+
+        {!loading && !error && skippedTypes.length > 0 ? (
+          <div className="banner banner--neutral" role="status">
+            <strong className="banner__title">Some types are not on this stack</strong>
+            <p className="banner__text">
+              Skipped:{' '}
+              {skippedTypes.map((s) => s.uid).join(', ')}. Run{' '}
+              <code>npm run automate:manifest</code> for this stack, or remove them
+              from <code>VITE_CONTENTSTACK_CONTENT_TYPE_UIDS</code>.
+            </p>
           </div>
         ) : null}
 

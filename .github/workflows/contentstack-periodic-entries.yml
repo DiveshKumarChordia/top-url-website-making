@@ -1,15 +1,23 @@
-# Required GitHub repository secrets (Settings → Secrets and variables → Actions):
+# Multi-instance: create one GitHub Environment per Contentstack target (stack + publish env +
+# Launch site). Set repository variable CONTENTSTACK_PERIODIC_ENVIRONMENTS_JSON to a JSON array
+# of those environment names, e.g. ["contentstack-dev22","contentstack-prod"].
+#
+# On each GitHub Environment, add secrets (same names for every instance, values differ):
 #   CONTENTSTACK_MANAGEMENT_TOKEN — required
 #   CONTENTSTACK_API_KEY or VITE_CONTENTSTACK_API_KEY — stack API key (either name is fine)
 #   CONTENTSTACK_PUBLISH_ENVIRONMENT or VITE_CONTENTSTACK_ENVIRONMENT — publish target uid
-# Optional:
+#   LAUNCH_SITE_URL — public URL of the Launch site for warm-up GET (required for that step)
+# Optional (per instance when applicable):
 #   CONTENTSTACK_BRANCH, CONTENTSTACK_LOCALE, CONTENTSTACK_MANAGEMENT_HOST,
-#   CONTENTSTACK_MANIFEST_PATH,
-#   CONTENTSTACK_PERIODIC_COUNT — entries per periodic.enabled type per run (ignored if manifest sets periodic.count)
-# Warm-up (after CMA script; same GETs as the static site in the browser):
-#   VITE_CONTENTSTACK_DELIVERY_HOST, VITE_CONTENTSTACK_DELIVERY_TOKEN,
-#   VITE_CONTENTSTACK_CONTENT_TYPE_UIDS (mirrors Launch env)
-#   LAUNCH_SITE_URL — override default Launch URL for GET (optional)
+#   CONTENTSTACK_MANIFEST_PATH, CONTENTSTACK_PERIODIC_COUNT
+# Warm-up Delivery API (optional):
+#   VITE_CONTENTSTACK_DELIVERY_HOST, VITE_CONTENTSTACK_DELIVERY_TOKEN
+#   VITE_CONTENTSTACK_CONTENT_TYPE_UIDS — optional per-environment override; else use repo Variable below
+#
+# Repository Actions variables (Settings → Secrets and variables → Actions → Variables):
+#   CONTENTSTACK_PERIODIC_ENVIRONMENTS_JSON — JSON array of environment names (default if unset: ["default"])
+#   VITE_CONTENTSTACK_CONTENT_TYPE_UIDS — shared comma-separated UIDs for warm-up (e.g. demo types)
+# Optional (repo Variable or Environment secret): CONTENTSTACK_WARMUP_GET_COUNT — repeat warm-up GETs per URL (default 100)
 
 name: Contentstack periodic entries
 
@@ -17,10 +25,21 @@ on:
   schedule:
     - cron: '*/5 * * * *'
   workflow_dispatch:
+    inputs:
+      instance:
+        description: 'GitHub Environment name to run only this instance (leave empty to run all from CONTENTSTACK_PERIODIC_ENVIRONMENTS_JSON)'
+        required: false
+        type: string
 
 jobs:
   periodic:
+    name: Periodic (${{ matrix.instance }})
     runs-on: ubuntu-latest
+    environment: ${{ matrix.instance }}
+    strategy:
+      fail-fast: false
+      matrix:
+        instance: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.instance || '') != '' && fromJSON(format('["{0}"]', github.event.inputs.instance)) || fromJSON(vars.CONTENTSTACK_PERIODIC_ENVIRONMENTS_JSON || '["default"]') }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -34,11 +53,11 @@ jobs:
           MGMT: ${{ secrets.CONTENTSTACK_MANAGEMENT_TOKEN }}
         run: |
           if [ -z "$STACK_KEY" ]; then
-            echo "::error::Add repository secret CONTENTSTACK_API_KEY or VITE_CONTENTSTACK_API_KEY (your Contentstack stack API key)."
+            echo "::error::On GitHub Environment \"${{ matrix.instance }}\", add secret CONTENTSTACK_API_KEY or VITE_CONTENTSTACK_API_KEY (stack API key)."
             exit 1
           fi
           if [ -z "$MGMT" ]; then
-            echo "::error::Add repository secret CONTENTSTACK_MANAGEMENT_TOKEN."
+            echo "::error::On GitHub Environment \"${{ matrix.instance }}\", add secret CONTENTSTACK_MANAGEMENT_TOKEN."
             exit 1
           fi
 
@@ -52,9 +71,8 @@ jobs:
           CONTENTSTACK_LOCALE: ${{ secrets.CONTENTSTACK_LOCALE }}
           CONTENTSTACK_PUBLISH_ENVIRONMENT: ${{ secrets.CONTENTSTACK_PUBLISH_ENVIRONMENT || secrets.VITE_CONTENTSTACK_ENVIRONMENT }}
           VITE_CONTENTSTACK_ENVIRONMENT: ${{ secrets.VITE_CONTENTSTACK_ENVIRONMENT || secrets.CONTENTSTACK_PUBLISH_ENVIRONMENT }}
-          CONTENTSTACK_MANIFEST_PATH: ${{ secrets.CONTENTSTACK_MANIFEST_PATH }}
+          CONTENTSTACK_MANIFEST_PATH: ${{ secrets.CONTENTSTACK_MANIFEST_PATH || vars.CONTENTSTACK_MANIFEST_PATH }}
           CONTENTSTACK_PERIODIC_COUNT: ${{ secrets.CONTENTSTACK_PERIODIC_COUNT }}
-        # CI has no .env file; variables come from secrets above.
         run: npm run automate:entries:periodic:ci
 
       - name: Warm Launch site and Delivery API (browser-equivalent GETs)
@@ -64,17 +82,30 @@ jobs:
           DEL_TOKEN: ${{ secrets.VITE_CONTENTSTACK_DELIVERY_TOKEN }}
           API_KEY: ${{ secrets.VITE_CONTENTSTACK_API_KEY || secrets.CONTENTSTACK_API_KEY }}
           ENV_ID: ${{ secrets.VITE_CONTENTSTACK_ENVIRONMENT || secrets.CONTENTSTACK_PUBLISH_ENVIRONMENT }}
-          CT_UIDS: ${{ secrets.VITE_CONTENTSTACK_CONTENT_TYPE_UIDS }}
+          CT_UIDS: ${{ secrets.VITE_CONTENTSTACK_CONTENT_TYPE_UIDS || vars.VITE_CONTENTSTACK_CONTENT_TYPE_UIDS }}
           LAUNCH_SITE_URL: ${{ secrets.LAUNCH_SITE_URL }}
+          CONTENTSTACK_WARMUP_GET_COUNT: ${{ secrets.CONTENTSTACK_WARMUP_GET_COUNT || vars.CONTENTSTACK_WARMUP_GET_COUNT }}
         run: |
           set -euo pipefail
-          SITE="${LAUNCH_SITE_URL:-https://top-url-website-making.dev22contentstackapps.com/}"
-          echo "GET Launch site (HTML, same as opening the URL in a browser): ${SITE}"
-          curl -fsSL -o /dev/null --max-time 90 "$SITE" \
-            || echo "::warning::Launch site GET failed (workflow continues)"
+          REPEAT="${CONTENTSTACK_WARMUP_GET_COUNT:-100}"
+          case "$REPEAT" in ''|*[!0-9]*) REPEAT=100 ;; esac
+          if [ "$REPEAT" -lt 1 ]; then REPEAT=1; fi
+          echo "Warm-up: ${REPEAT} GET(s) per Launch URL and per Delivery entries URL"
+
+          if [ -z "${LAUNCH_SITE_URL:-}" ]; then
+            echo "::notice::Skipping Launch site GET: set LAUNCH_SITE_URL on GitHub Environment \"${{ matrix.instance }}\"."
+          else
+            echo "GET Launch site ×${REPEAT}: ${LAUNCH_SITE_URL}"
+            set +e
+            for ((i=1; i<=REPEAT; i++)); do
+              curl -fsSL -o /dev/null --max-time 90 "$LAUNCH_SITE_URL" \
+                || echo "::warning::Launch site GET $i/${REPEAT} failed (workflow continues)"
+            done
+            set -e
+          fi
 
           if [ -z "${DEL_HOST:-}" ] || [ -z "${DEL_TOKEN:-}" ] || [ -z "${API_KEY:-}" ]; then
-            echo "::notice::Skipping Delivery API GETs: set VITE_CONTENTSTACK_DELIVERY_HOST, VITE_CONTENTSTACK_DELIVERY_TOKEN, and API key secrets to mirror the app."
+            echo "::notice::Skipping Delivery API GETs: set VITE_CONTENTSTACK_DELIVERY_HOST, VITE_CONTENTSTACK_DELIVERY_TOKEN, and API key secrets on this environment to mirror the app."
             exit 0
           fi
 
@@ -82,22 +113,24 @@ jobs:
           UIDS_RAW="${CT_UIDS:-top_url_lines}"
           IFS=',' read -ra UIDS <<< "$UIDS_RAW"
           set +e
-          for raw in "${UIDS[@]}"; do
-            uid="$(printf '%s' "$raw" | xargs)"
-            [ -z "$uid" ] && continue
-            path="${HOST}/v3/content_types/${uid}/entries"
-            if [ -n "${ENV_ID:-}" ]; then
-              path="${path}?environment=${ENV_ID}"
-            fi
-            echo "GET Delivery: .../${uid}/entries"
-            code=$(curl -sS -o /dev/null -w "%{http_code}" \
-              -H "api_key: ${API_KEY}" \
-              -H "access_token: ${DEL_TOKEN}" \
-              "$path")
-            if [ "$code" != "200" ]; then
-              echo "::warning::Delivery GET ${uid} returned HTTP ${code}"
-            else
-              echo "OK ${uid} (HTTP ${code})"
-            fi
+          for ((n=1; n<=REPEAT; n++)); do
+            for raw in "${UIDS[@]}"; do
+              uid="$(printf '%s' "$raw" | xargs)"
+              [ -z "$uid" ] && continue
+              path="${HOST}/v3/content_types/${uid}/entries"
+              if [ -n "${ENV_ID:-}" ]; then
+                path="${path}?environment=${ENV_ID}"
+              fi
+              echo "GET Delivery ${n}/${REPEAT}: .../${uid}/entries"
+              code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                -H "api_key: ${API_KEY}" \
+                -H "access_token: ${DEL_TOKEN}" \
+                "$path")
+              if [ "$code" != "200" ]; then
+                echo "::warning::Delivery GET ${uid} (round ${n}) returned HTTP ${code}"
+              else
+                echo "OK ${uid} round ${n}/${REPEAT} (HTTP ${code})"
+              fi
+            done
           done
           set -e

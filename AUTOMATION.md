@@ -80,49 +80,54 @@ Workflow: [`.github/workflows/contentstack-periodic-entries.yml`](.github/workfl
 
 The workflow runs **`npm run automate:entries:periodic:ci`** (no `--env-file=.env`; the runner has no `.env` file). Locally use **`npm run automate:entries:periodic`** with a `.env` file.
 
-### Repository secrets vs environment secrets (GitHub)
+### Multi-instance (recommended): GitHub Environments + matrix
 
-Under **Settings → Secrets and variables → Actions**, GitHub shows two different ideas:
+Each **instance** is one Contentstack automation target (any combination of org, stack, publish environment, CDN host, Launch URL). The workflow uses a **matrix** over [GitHub Environment](https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment) names so the **same secret names** can hold **different values** per instance—no `ORG1_CONTENTSTACK_API_KEY` prefixes.
 
-| UI area | What it is | Used by this repo’s periodic workflow? |
-|---------|------------|----------------------------------------|
-| **Repository secrets** | Encrypted values available to workflows on this repo | **Yes.** The YAML reads `${{ secrets.NAME }}` from here. |
-| **Environment secrets** (e.g. “production”) | Secrets tied to a named [GitHub Environment](https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment) | **No** — the workflow does not set `environment: …` on the job, so “This environment has no secrets” is **normal**, not a missing configuration. |
+**Supported shapes** (examples):
 
-**What the periodic job actually needs** (as repository secrets): management token, stack API key (`CONTENTSTACK_API_KEY` or `VITE_CONTENTSTACK_API_KEY`), publish/environment uid (`CONTENTSTACK_PUBLISH_ENVIRONMENT` or `VITE_CONTENTSTACK_ENVIRONMENT`), plus any optional names you added to the workflow `env` block (host, branch, locale, manifest path, periodic count).
+1. Two stacks on the **same** delivery CDN host — delivery host may match; stack API key, delivery token, management token, and publish environment uid still differ per instance where needed.
+2. Same Contentstack **org**, two **stacks** — two environments; keys and tokens differ per stack.
+3. Same **stack**, two **publish environments** — two environments; publish/environment uid differs; Launch URL and warm-up per env; CMA/delivery credentials may or may not match.
+4. **Different CDNs** — set `VITE_CONTENTSTACK_DELIVERY_HOST` and `CONTENTSTACK_MANAGEMENT_HOST` per instance as required.
 
-**What it does *not* read:** Delivery API variables (`VITE_CONTENTSTACK_DELIVERY_TOKEN`, `VITE_CONTENTSTACK_DELIVERY_HOST`, etc.). Those are for the **Vite app / Launch** build only. Storing them as repository secrets is optional and does not affect whether **`automate:entries:periodic:ci`** succeeds.
+**Setup**
 
-**Annotations:** A successful run may still show a GitHub notice about Node versions used *by* `actions/checkout` and `actions/setup-node`. That is separate from your workflow’s `node-version: '20'` for `npm ci` / the script; it does not mean the job failed.
+1. **Repository variable** **`CONTENTSTACK_PERIODIC_ENVIRONMENTS_JSON`** — JSON array of environment names, e.g. `["contentstack-dev22","contentstack-prod"]`. If omitted, the workflow defaults to `["default"]` (create a GitHub Environment named **`default`** with your secrets, or set this variable).
+2. Under **Settings → Environments**, create **one environment per name** in that array.
+3. On **each** environment, add **secrets** (same keys, instance-specific values):
 
-Configure repository **Secrets** — use these **exact** names (or edit the workflow):
+| Secret | Purpose |
+|--------|---------|
+| **`CONTENTSTACK_MANAGEMENT_TOKEN`** | Required for CMA |
+| **`CONTENTSTACK_API_KEY`** or **`VITE_CONTENTSTACK_API_KEY`** | Stack API key (at least one) |
+| **`CONTENTSTACK_PUBLISH_ENVIRONMENT`** or **`VITE_CONTENTSTACK_ENVIRONMENT`** | Publish target uid |
+| **`LAUNCH_SITE_URL`** | Public site URL for warm-up GET (if unset, that GET is skipped with a notice) |
 
-- **`CONTENTSTACK_MANAGEMENT_TOKEN`** (required)
-- **`CONTENTSTACK_API_KEY`** *or* **`VITE_CONTENTSTACK_API_KEY`** (stack API key; add at least one)
-- **`CONTENTSTACK_PUBLISH_ENVIRONMENT`** *or* **`VITE_CONTENTSTACK_ENVIRONMENT`** (required for publish; add at least one)
+**Optional** on each environment: `CONTENTSTACK_MANAGEMENT_HOST`, `CONTENTSTACK_BRANCH`, `CONTENTSTACK_LOCALE`, `CONTENTSTACK_MANIFEST_PATH`, `CONTENTSTACK_PERIODIC_COUNT`, taxonomy secrets, `VITE_CONTENTSTACK_DELIVERY_HOST`, `VITE_CONTENTSTACK_DELIVERY_TOKEN`, **`VITE_CONTENTSTACK_CONTENT_TYPE_UIDS`** (only if this instance needs a different list than the repo default).
 
-Recommended in `.env` for local runs (optional on the workflow unless you add them to `env:`):
+**Shared content type UIDs (warm-up)** — Often the same for every instance (e.g. `demo_plain_text,demo_json_rte,…`). Set **repository variable** **`VITE_CONTENTSTACK_CONTENT_TYPE_UIDS`** once. The warm-up step uses **`secrets.VITE_CONTENTSTACK_CONTENT_TYPE_UIDS` on that environment first**, then falls back to the repo variable, then the shell default `top_url_lines`.
 
-- `CONTENTSTACK_MANAGEMENT_HOST`, `CONTENTSTACK_BRANCH`, `CONTENTSTACK_LOCALE`
+**CMA-only vs warm-up** — `automate:entries:periodic:ci` does **not** need Delivery API variables. **`VITE_CONTENTSTACK_DELIVERY_*`** on the environment are **only** for the optional warm-up GETs (and mirror what the Vite app / Launch uses). Local `.env` still uses the same names for convenience.
 
-Optional workflow extras (only if you add them to the workflow `env` block):
+**Manual run for one instance** — Use **Actions → workflow → Run workflow** and set **instance** to a single GitHub Environment name, or call the workflow dispatch API with `inputs.instance`.
 
-- `CONTENTSTACK_MANIFEST_PATH`, `CONTENTSTACK_PERIODIC_COUNT`, `CONTENTSTACK_MANIFEST_SKIP_SEEDS`, `CONTENTSTACK_MANIFEST_SKIP_DUPLICATE_SEEDS`
+**Annotations:** A successful run may still show a GitHub notice about Node versions used *by* `actions/checkout` and `actions/setup-node`. That is separate from your workflow's `node-version: '20'` for `npm ci` / the script; it does not mean the job failed.
 
-Optional **warm-up** step (POST-CMA GETs): `VITE_CONTENTSTACK_DELIVERY_HOST`, `VITE_CONTENTSTACK_DELIVERY_TOKEN`, `VITE_CONTENTSTACK_CONTENT_TYPE_UIDS`, plus API key / environment secrets as listed above; `LAUNCH_SITE_URL` to override the default hosted site URL.
+Cron `*/5 * * * *` runs in **UTC** (every five minutes). **`strategy.fail-fast: false`** lets one instance fail without canceling the others.
 
-Cron `*/5 * * * *` runs in **UTC** (every five minutes). Use `workflow_dispatch` for a manual test.
+After the periodic script succeeds, the workflow **GETs** (optional):
 
-After the periodic script succeeds, the workflow **GETs** (optional but recommended):
+1. **Launch** — `LAUNCH_SITE_URL` for that environment (no repo-wide default; avoids warming the wrong site).
+2. **Delivery API** — same URLs as the browser if **`VITE_CONTENTSTACK_DELIVERY_HOST`**, **`VITE_CONTENTSTACK_DELIVERY_TOKEN`**, and API key are set on that environment; UIDs from env secret or repo variable as above.
 
-1. Your **Launch / hosted site** URL (default `https://top-url-website-making.dev22contentstackapps.com/`, overridable via secret **`LAUNCH_SITE_URL`**).
-2. The same **Content Delivery API** URLs the browser uses: `GET …/v3/content_types/{uid}/entries?environment=…` for each UID in **`VITE_CONTENTSTACK_CONTENT_TYPE_UIDS`**, with `api_key` and `access_token` headers. Set **`VITE_CONTENTSTACK_DELIVERY_HOST`**, **`VITE_CONTENTSTACK_DELIVERY_TOKEN`**, **`VITE_CONTENTSTACK_API_KEY`** (or stack key secret), **`VITE_CONTENTSTACK_ENVIRONMENT`** (or publish env secret), and **`VITE_CONTENTSTACK_CONTENT_TYPE_UIDS`** as repository secrets to enable this step.
+**Manifests per instance** — If stacks need different manifests, set **`CONTENTSTACK_MANIFEST_PATH`** on the corresponding GitHub Environment so each job resolves its own file in the repo.
 
 **Write volume** — Every five minutes produces more entries over time; watch **Management API rate limits** and stack hygiene (retention / cleanup).
 
 ### Contentstack Automation Hub (alternative to GitHub `schedule`)
 
-If you prefer running on a timer **inside Contentstack** (or GitHub’s cron is slow or unavailable), use **[Automation Hub](https://www.contentstack.com/docs/developers/automation-hub-guides/about-automation-hub)** so the **same** GitHub workflow still executes (same `npm` script and **repository secrets**).
+If you prefer running on a timer **inside Contentstack** (or GitHub’s cron is slow or unavailable), use **[Automation Hub](https://www.contentstack.com/docs/developers/automation-hub-guides/about-automation-hub)** so the **same** GitHub workflow still executes (same `npm` script; secrets live on each **GitHub Environment** as for Actions).
 
 **Pattern**
 
@@ -136,7 +141,7 @@ If you prefer running on a timer **inside Contentstack** (or GitHub’s cron is 
 | Method | `POST` |
 | URL | `https://api.github.com/repos/<owner>/<repo>/actions/workflows/contentstack-periodic-entries.yml/dispatches` |
 | Headers | `Accept: application/vnd.github+json`, `Content-Type: application/json`, `Authorization: Bearer <GITHUB_PAT>` |
-| Body (JSON) | `{"ref":"main"}` (use your default branch name if not `main`) |
+| Body (JSON) | `{"ref":"main","inputs":{"instance":""}}` — use your default branch if not `main`; leave `instance` empty to run all environments in **`CONTENTSTACK_PERIODIC_ENVIRONMENTS_JSON`**, or set it to one environment name to run that instance only |
 
 Replace `<owner>` / `<repo>` (e.g. `DiveshKumarChordia` / `top-url-website-making`). The workflow **file name** (`contentstack-periodic-entries.yml`) is valid as the workflow identifier in this API. In the HTTP Action, turn on **Throw error status** (or equivalent) for 4xx/5xx so failed dispatches show in Automation Hub execution logs.
 
