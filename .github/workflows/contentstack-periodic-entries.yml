@@ -18,6 +18,7 @@
 #   CONTENTSTACK_PERIODIC_ENVIRONMENTS_JSON — JSON array of environment names (default if unset: ["default"])
 #   VITE_CONTENTSTACK_CONTENT_TYPE_UIDS — shared comma-separated UIDs for warm-up (e.g. demo types)
 # Optional (repo Variable or Environment secret): CONTENTSTACK_WARMUP_GET_COUNT — repeat warm-up GETs per URL (default 100)
+# Optional: LAUNCH_ENTRY_WARMUP_MAX — cap per-run Launch GETs for /entry/... pages (see scripts/warm-launch-urls.mjs)
 
 name: Contentstack periodic entries
 
@@ -74,6 +75,20 @@ jobs:
           CONTENTSTACK_MANIFEST_PATH: ${{ secrets.CONTENTSTACK_MANIFEST_PATH || vars.CONTENTSTACK_MANIFEST_PATH }}
           CONTENTSTACK_PERIODIC_COUNT: ${{ secrets.CONTENTSTACK_PERIODIC_COUNT }}
         run: npm run automate:entries:periodic:ci
+
+      - name: Warm Launch per-entry page URLs
+        if: success()
+        env:
+          LAUNCH_SITE_URL: ${{ secrets.LAUNCH_SITE_URL }}
+          VITE_CONTENTSTACK_DELIVERY_HOST: ${{ secrets.VITE_CONTENTSTACK_DELIVERY_HOST }}
+          VITE_CONTENTSTACK_DELIVERY_TOKEN: ${{ secrets.VITE_CONTENTSTACK_DELIVERY_TOKEN }}
+          VITE_CONTENTSTACK_API_KEY: ${{ secrets.VITE_CONTENTSTACK_API_KEY || secrets.CONTENTSTACK_API_KEY }}
+          CONTENTSTACK_API_KEY: ${{ secrets.CONTENTSTACK_API_KEY || secrets.VITE_CONTENTSTACK_API_KEY }}
+          VITE_CONTENTSTACK_ENVIRONMENT: ${{ secrets.VITE_CONTENTSTACK_ENVIRONMENT || secrets.CONTENTSTACK_PUBLISH_ENVIRONMENT }}
+          CONTENTSTACK_PUBLISH_ENVIRONMENT: ${{ secrets.CONTENTSTACK_PUBLISH_ENVIRONMENT || secrets.VITE_CONTENTSTACK_ENVIRONMENT }}
+          VITE_CONTENTSTACK_CONTENT_TYPE_UIDS: ${{ secrets.VITE_CONTENTSTACK_CONTENT_TYPE_UIDS || vars.VITE_CONTENTSTACK_CONTENT_TYPE_UIDS }}
+          LAUNCH_ENTRY_WARMUP_MAX: ${{ secrets.LAUNCH_ENTRY_WARMUP_MAX || vars.LAUNCH_ENTRY_WARMUP_MAX }}
+        run: npm run warm:launch-urls
 
       - name: Warm Launch site and Delivery API (browser-equivalent GETs)
         if: success()

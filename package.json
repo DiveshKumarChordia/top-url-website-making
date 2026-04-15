@@ -11,13 +11,15 @@
     "automate:entry": "node --env-file=.env scripts/create-and-publish-entry.mjs",
     "automate:manifest": "node --env-file=.env scripts/bootstrap-from-manifest.mjs",
     "automate:entries:periodic": "node --env-file=.env scripts/periodic-entries-from-manifest.mjs",
-    "automate:entries:periodic:ci": "node scripts/periodic-entries-from-manifest.mjs"
+    "automate:entries:periodic:ci": "node scripts/periodic-entries-from-manifest.mjs",
+    "warm:launch-urls": "node scripts/warm-launch-urls.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-router-dom": "^7.14.1",
     "three": "^0.183.2"
   },
   "devDependencies": {

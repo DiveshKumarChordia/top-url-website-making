@@ -1,6 +1,6 @@
 # Top URL lines — Contentstack front-end
 
-Vite + React app that lists **published** entries for one or more content types through the [Content Delivery API](https://www.contentstack.com/docs/developers/apis/content-delivery-api). The home page includes a small **Three.js** hero (React Three Fiber) for decoration. If you omit `VITE_CONTENTSTACK_CONTENT_TYPE_UIDS`, the app defaults to a single type: **`top_url_lines`**. The repo’s [`.env.example`](.env.example) targets the demo manifest types: `demo_plain_text`, `demo_json_rte`, `demo_reference`, `demo_group`, `demo_blocks` (align this list with what exists in your stack).
+Vite + React app that lists **published** entries for one or more content types through the [Content Delivery API](https://www.contentstack.com/docs/developers/apis/content-delivery-api), with **one URL per entry** (`/entry/:contentTypeUid/:entryUid`). The home page includes a small **Three.js** hero (React Three Fiber) for decoration. If you omit `VITE_CONTENTSTACK_CONTENT_TYPE_UIDS`, the app defaults to a single type: **`top_url_lines`**. The repo’s [`.env.example`](.env.example) targets the demo manifest types: `demo_plain_text`, `demo_json_rte`, `demo_reference`, `demo_group`, `demo_blocks` (align this list with what exists in your stack).
 
 ## Local setup
 
@@ -200,7 +200,9 @@ Details, secrets, and placeholders: **[AUTOMATION.md](./AUTOMATION.md)**.
 5. In Launch **Environment variables**, set the **four required** `VITE_CONTENTSTACK_*` keys (`API_KEY`, `DELIVERY_TOKEN`, `ENVIRONMENT`, `DELIVERY_HOST`). Add **`VITE_CONTENTSTACK_CONTENT_TYPE_UIDS`** only if you want types other than the default `top_url_lines`; it is **optional**.
 6. Use Node **20** (or current LTS) in the project settings if the default Node version fails the build.
 
-Optional: trigger redeploys when content publishes (webhook, GitHub Action, or Launch deploy hook). For **multi-field manifests**, **`npm run automate:manifest`**, **`npm run automate:entries:periodic`** (every **5** minutes via [`.github/workflows/contentstack-periodic-entries.yml`](.github/workflows/contentstack-periodic-entries.yml); optional **Delivery** GET warm-up step), and taxonomy/reference placeholders, see **[AUTOMATION.md](./AUTOMATION.md)**.
+**SPA routing (required for deep links):** This app uses **React Router** with paths such as `/entry/...`. The build is a single-page app (`index.html` + JS). Configure your host so **non-file routes** serve **`index.html`** (same as Vite’s SPA behavior). In **Contentstack Launch**, use your project’s static-site / SPA or rewrite settings so all paths fall back to `index.html` (exact steps depend on the CDN). Without this, refreshing or opening a deep link directly may return **404**.
+
+Optional: trigger redeploys when content publishes (webhook, GitHub Action, or Launch deploy hook). For **multi-field manifests**, **`npm run automate:manifest`**, **`npm run automate:entries:periodic`**, and **`npm run warm:launch-urls`** (used in CI to GET each entry page on Launch; every **5** minutes via [`.github/workflows/contentstack-periodic-entries.yml`](.github/workflows/contentstack-periodic-entries.yml); optional **Delivery** GET warm-up step), and taxonomy/reference placeholders, see **[AUTOMATION.md](./AUTOMATION.md)**.
 
 ## References
 

@@ -1,0 +1,57 @@
+Your repo is **Vite + React**, not Create React App. Launch’s “CRA” detection is wrong for this project—override build settings as below.
+
+---
+
+## Create New Project (do this **once per stack**, or duplicate project and change only variables)
+
+Use **three** Launch projects if you want a 1:1 match with `cs-dev22-sso`, `cs-dev11-a`, and `cs-dev11-b` (same repo, different env vars on each).
+
+| Field | What to enter |
+|--------|----------------|
+| **Repository** | `DiveshKumarChordia/top-url-website-making` (already set) |
+| **Git branch** | `main` (or whichever branch you deploy) |
+| **Project name** | Something you can recognize per stack, e.g. `top-url-website-making-dev22-sso`, `...-dev11-a`, `...-dev11-b` |
+| **Environment name** | `Default` is fine for each project, or names like `dev22` / `dev11-a` if you prefer |
+
+### Build and output
+
+| Field | Value |
+|--------|--------|
+| **Framework preset** | **Other** (or **Vite** if Launch lists it) — not CRA |
+| **Build command** | `npm ci && npm run build` |
+| **Output directory** | `dist` |
+| **Server command** | Leave **empty** for a static Vite build (Launch serves `dist`). Only set a server command if Launch expects SSR for this app (this project does not). |
+
+---
+
+## Environment variables (per project — values from **that** stack only)
+
+Add these **keys**; **values** = whatever you put in the matching GitHub environment (`instance.txt` / secrets).
+
+| Key | Value source |
+|-----|----------------|
+| `VITE_CONTENTSTACK_API_KEY` | That stack’s API key |
+| `VITE_CONTENTSTACK_DELIVERY_TOKEN` | That stack’s delivery token |
+| `VITE_CONTENTSTACK_ENVIRONMENT` | Publish env uid (e.g. `dev22-sso-traffic-explorer` or `dev11-traffic-explorer`) |
+| `VITE_CONTENTSTACK_DELIVERY_HOST` | That stack’s delivery host URL (no trailing slash) |
+| `VITE_CONTENTSTACK_CONTENT_TYPE_UIDS` | Same shared list as GitHub repo variable, e.g. `demo_plain_text,demo_json_rte,demo_reference,demo_group,demo_blocks` |
+
+Do **not** add `CONTENTSTACK_MANAGEMENT_TOKEN` to Launch (not used in the browser build for this app).
+
+---
+
+## After deploy
+
+1. Open **Open site** and copy the **live URL**.
+2. Put that URL in GitHub under the **matching** environment secret **`LAUNCH_SITE_URL`**.
+
+Repeat **New Project** (or equivalent) for the other two stacks with the other two secret sets.
+
+---
+
+## Quick checklist
+
+- [ ] Preset is **not** CRA unless you change the repo; use **Other** + `npm ci && npm run build` + **`dist`**.  
+- [ ] Three stacks ⇒ three Launch projects (or three Launch environments with different variable sets, if your Launch plan uses that).  
+- [ ] Align each Launch project with one of `cs-dev22-sso` / `cs-dev11-a` / `cs-dev11-b`.  
+- [ ] Update **`LAUNCH_SITE_URL`** in GitHub after each site is live.
