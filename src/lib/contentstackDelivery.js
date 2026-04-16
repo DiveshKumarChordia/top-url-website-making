@@ -7,10 +7,11 @@ export function getConfig() {
   const deliveryToken = import.meta.env.VITE_CONTENTSTACK_DELIVERY_TOKEN
   const environment = import.meta.env.VITE_CONTENTSTACK_ENVIRONMENT
   let deliveryHost = import.meta.env.VITE_CONTENTSTACK_DELIVERY_HOST ?? ''
+  const branch = import.meta.env.VITE_CONTENTSTACK_BRANCH ?? ''
 
   deliveryHost = deliveryHost.replace(/\/$/, '')
 
-  return { apiKey, deliveryToken, environment, deliveryHost }
+  return { apiKey, deliveryToken, environment, deliveryHost, branch }
 }
 
 export function parseContentTypeUids() {
@@ -60,11 +61,13 @@ export function isMissingContentTypeError(res, message) {
   return false
 }
 
-export function deliveryHeaders(apiKey, deliveryToken) {
-  return {
+export function deliveryHeaders(apiKey, deliveryToken, branch = '') {
+  const h = {
     api_key: apiKey,
     access_token: deliveryToken,
   }
+  if (branch) h.branch = branch
+  return h
 }
 
 /**
@@ -73,7 +76,7 @@ export function deliveryHeaders(apiKey, deliveryToken) {
  * @param {string} entryUid
  */
 export async function fetchEntryDetail(config, contentTypeUid, entryUid) {
-  const { apiKey, deliveryToken, environment, deliveryHost } = config
+  const { apiKey, deliveryToken, environment, deliveryHost, branch } = config
   if (!apiKey || !deliveryToken || !deliveryHost) {
     return {
       ok: false,
@@ -89,7 +92,7 @@ export async function fetchEntryDetail(config, contentTypeUid, entryUid) {
     entryUid,
   )
   const res = await fetch(url, {
-    headers: deliveryHeaders(apiKey, deliveryToken),
+    headers: deliveryHeaders(apiKey, deliveryToken, branch),
   })
   const body = await res.json().catch(() => ({}))
   const entry = body.entry ?? null

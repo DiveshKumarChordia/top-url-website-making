@@ -39,12 +39,18 @@ function deliveryErrorHint(body) {
   }
 }
 
-async function deliveryGet(url, apiKey, accessToken) {
+function deliveryHeadersWarm(apiKey, accessToken, branch) {
+  const h = {
+    api_key: apiKey,
+    access_token: accessToken,
+  }
+  if (branch) h.branch = branch
+  return h
+}
+
+async function deliveryGet(url, apiKey, accessToken, branch) {
   const res = await fetch(url, {
-    headers: {
-      api_key: apiKey,
-      access_token: accessToken,
-    },
+    headers: deliveryHeadersWarm(apiKey, accessToken, branch),
   })
   const body = await res.json().catch(() => ({}))
   return { ok: res.ok, status: res.status, body }
@@ -82,6 +88,8 @@ async function main() {
   const environment =
     optionalEnv('VITE_CONTENTSTACK_ENVIRONMENT') ||
     optionalEnv('CONTENTSTACK_PUBLISH_ENVIRONMENT')
+  const branch =
+    optionalEnv('CONTENTSTACK_BRANCH') || optionalEnv('VITE_CONTENTSTACK_BRANCH')
 
   if (!deliveryHost || !apiKey || !accessToken) {
     console.log(
@@ -109,7 +117,12 @@ async function main() {
   const entryTuples = []
   for (const uid of contentTypeUids) {
     const url = buildEntriesUrl(deliveryHost, environment, uid)
-    const { ok, status, body } = await deliveryGet(url, apiKey, accessToken)
+    const { ok, status, body } = await deliveryGet(
+      url,
+      apiKey,
+      accessToken,
+      branch,
+    )
     if (!ok) {
       const hint = deliveryErrorHint(body)
       console.warn(

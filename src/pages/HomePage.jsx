@@ -9,6 +9,7 @@ import {
 import { DigestItem } from '../components/DigestItem.jsx'
 import {
   buildEntriesUrl,
+  deliveryHeaders,
   deliveryResponseMessage,
   getConfig,
   isMissingContentTypeError,
@@ -41,7 +42,8 @@ export default function HomePage() {
   const [digestFilter, setDigestFilter] = useState(null)
 
   const reloadEntries = useCallback(async () => {
-    const { apiKey, deliveryToken, environment, deliveryHost } = getConfig()
+    const { apiKey, deliveryToken, environment, deliveryHost, branch } =
+      getConfig()
 
     if (!apiKey || !deliveryToken || !deliveryHost) {
       setLoading(false)
@@ -65,10 +67,7 @@ export default function HomePage() {
       for (const uid of contentTypeUids) {
         const url = buildEntriesUrl(deliveryHost, environment, uid)
         const res = await fetch(url, {
-          headers: {
-            api_key: apiKey,
-            access_token: deliveryToken,
-          },
+          headers: deliveryHeaders(apiKey, deliveryToken, branch),
         })
         const body = await res.json().catch(() => ({}))
         if (!res.ok) {
