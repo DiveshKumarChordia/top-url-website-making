@@ -29,6 +29,16 @@ function buildEntriesUrl(deliveryHost, environment, contentTypeUid) {
   return q ? `${base}?${q}` : base
 }
 
+function deliveryErrorHint(body) {
+  const msg = body?.error_message ?? body?.error
+  if (typeof msg === 'string' && msg.trim()) return msg.trim()
+  try {
+    return JSON.stringify(body?.errors ?? body).slice(0, 500)
+  } catch {
+    return ''
+  }
+}
+
 async function deliveryGet(url, apiKey, accessToken) {
   const res = await fetch(url, {
     headers: {
@@ -54,6 +64,9 @@ async function main() {
   if (!launchBaseRaw) {
     console.log(
       'warm-launch-urls: LAUNCH_SITE_URL unset — skip (nothing to warm).',
+    )
+    console.log(
+      'Add secret LAUNCH_SITE_URL on this GitHub Environment (Settings → Environments → your env → Environment secrets), e.g. https://your-launch-site.example.com — same URL as in Launch “Open site”.',
     )
     return
   }
@@ -98,8 +111,9 @@ async function main() {
     const url = buildEntriesUrl(deliveryHost, environment, uid)
     const { ok, status, body } = await deliveryGet(url, apiKey, accessToken)
     if (!ok) {
+      const hint = deliveryErrorHint(body)
       console.warn(
-        `warm-launch-urls: Delivery list ${uid} failed HTTP ${status} — skip type`,
+        `warm-launch-urls: Delivery list ${uid} failed HTTP ${status}${hint ? ` — ${hint}` : ''}`,
       )
       continue
     }
@@ -118,6 +132,14 @@ async function main() {
   }
 
   console.log(`warm-launch-urls: ${entryTuples.length} entry page(s)`)
+
+  if (entryTuples.length === 0 && contentTypeUids.length > 0) {
+    console.warn(
+      'warm-launch-urls: No entries were listed. Usually this means VITE_CONTENTSTACK_CONTENT_TYPE_UIDS does not match ' +
+        'content types that exist on this stack (422/404), or the environment uid is wrong. ' +
+        'Set the same comma-separated UIDs you use in Launch for the app (e.g. top_url_lines).',
+    )
+  }
 
   let failed = 0
   for (let i = 0; i < targets.length; i++) {

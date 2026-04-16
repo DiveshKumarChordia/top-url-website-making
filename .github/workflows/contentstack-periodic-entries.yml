@@ -6,7 +6,8 @@
 #   CONTENTSTACK_MANAGEMENT_TOKEN — required
 #   CONTENTSTACK_API_KEY or VITE_CONTENTSTACK_API_KEY — stack API key (either name is fine)
 #   CONTENTSTACK_PUBLISH_ENVIRONMENT or VITE_CONTENTSTACK_ENVIRONMENT — publish target uid
-#   LAUNCH_SITE_URL — public URL of the Launch site for warm-up GET (required for that step)
+#   LAUNCH_SITE_URL — public base URL of the deployed site (no trailing slash), e.g. https://xyz.launch.com
+#     Required for “Warm Launch per-entry page URLs” and the curl home warm-up; if unset, warm-launch-urls skips.
 # Optional (per instance when applicable):
 #   CONTENTSTACK_BRANCH, CONTENTSTACK_LOCALE, CONTENTSTACK_MANAGEMENT_HOST,
 #   CONTENTSTACK_MANIFEST_PATH, CONTENTSTACK_PERIODIC_COUNT
