@@ -85,9 +85,11 @@ async function main() {
     optionalEnv('VITE_CONTENTSTACK_API_KEY') ||
     optionalEnv('CONTENTSTACK_API_KEY')
   const accessToken = optionalEnv('VITE_CONTENTSTACK_DELIVERY_TOKEN')
+  // Same order as scripts/lib/cma.mjs loadStackAuth — prefer publish env so GitHub
+  // repo-level VITE_CONTENTSTACK_ENVIRONMENT (another stack) does not break Delivery.
   const environment =
-    optionalEnv('VITE_CONTENTSTACK_ENVIRONMENT') ||
-    optionalEnv('CONTENTSTACK_PUBLISH_ENVIRONMENT')
+    optionalEnv('CONTENTSTACK_PUBLISH_ENVIRONMENT') ||
+    optionalEnv('VITE_CONTENTSTACK_ENVIRONMENT')
   const branch =
     optionalEnv('CONTENTSTACK_BRANCH') || optionalEnv('VITE_CONTENTSTACK_BRANCH')
 
