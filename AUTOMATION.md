@@ -4,7 +4,7 @@
 
 - **`npm run automate:manifest`** — Creates content types from [`scripts/content-types.manifest.json`](scripts/content-types.manifest.json) (if missing) and runs **seed** `entries`. Resolves `__REF__` and `__TAX_TERMS__` placeholders; records entry UIDs in memory in manifest order.
 - **`npm run automate:entries:periodic`** — **Does not** create content types. For each `contentTypes[]` item with `periodic.enabled`, creates `count` new entries (default **1**) from `periodic.entryTemplate` or the last seed entry, with a **unique** `title`. Resolves `__REF__` via the Management API (`first` / `latest` entry per referenced type).
-- **`npm run warm:launch-urls`** — Lists entries via the Delivery API, then **GET**s each corresponding Launch URL (`/entry/:contentTypeUid/:entryUid`). Env: **`LAUNCH_SITE_URL`**, Delivery host/token/API key, environment, optional **`VITE_CONTENTSTACK_CONTENT_TYPE_UIDS`**, optional **`LAUNCH_ENTRY_WARMUP_MAX`** (cap entry URLs). Skips gracefully if Launch URL or Delivery env is missing.
+- **`npm run warm:launch-urls`** — Lists entries via the Delivery API, then **GET**s each corresponding Launch URL (`/#/entry/:contentTypeUid/:entryUid`, matching **HashRouter**). Env: **`LAUNCH_SITE_URL`**, Delivery host/token/API key, environment, optional **`VITE_CONTENTSTACK_CONTENT_TYPE_UIDS`**, optional **`LAUNCH_ENTRY_WARMUP_MAX`** (cap entry URLs). Skips gracefully if Launch URL or Delivery env is missing.
 
 Requires **Node.js 20+** (`node --env-file=.env`).
 

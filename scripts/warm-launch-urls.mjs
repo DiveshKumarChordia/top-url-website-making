@@ -1,5 +1,7 @@
 /**
- * GET each Launch URL for entries: /entry/:contentTypeUid/:entryUid
+ * GET each Launch URL for entries: /#/entry/:contentTypeUid/:entryUid
+ * (App uses HashRouter so static hosts return index.html for `/` and the hash
+ * carries the client route — no CDN rewrite needed.)
  * Uses the same Delivery list endpoints as the Vite app. Does not multiply by
  * CONTENTSTACK_WARMUP_GET_COUNT (one GET per entry page per run).
  *
@@ -143,7 +145,7 @@ async function main() {
   const targets = []
   for (const { ct, entryUid } of entryTuples) {
     const path = `/entry/${encodeURIComponent(ct)}/${encodeURIComponent(entryUid)}`
-    targets.push(`${launchBase}${path}`)
+    targets.push(`${launchBase}/#${path}`)
   }
 
   console.log(`warm-launch-urls: ${entryTuples.length} entry page(s)`)
