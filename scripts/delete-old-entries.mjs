@@ -1,29 +1,32 @@
 #!/usr/bin/env node
 /**
- * delete-old-entries.mjs
+ * delete-old-entries.mjs  —  tiered age-band retention
  *
- * Deletes entries older than N days across the configured content types.
+ * Instead of "delete everything older than N days", each age band has a target
+ * population and we delete the OLDEST excess beyond that target. This keeps the
+ * stack at a stable, shaped size (so it stays under the org entry cap) while
+ * still driving plenty of `entry_deleted` meter events for the dashboard.
  *
- * Why: the org-level entry cap (cma-api error code 133) makes endless
- * `periodic-entries-from-manifest.mjs` runs eventually choke. This script
- * keeps the steady-state roughly stable by removing old entries — which has
- * the bonus of driving `entry_deleted` meter events that feed the dashboard's
- * `entries_removed` series and Net Entries trend.
+ * Bands (by `created_at` — immutable true age, not updated_at):
+ *   age > 30 days        → keep newest 5 000   (CONTENTSTACK_RETAIN_OVER_30D)
+ *   age 15–30 days       → keep newest 10 000  (CONTENTSTACK_RETAIN_15_30D)
+ *   age 7–15 days        → keep newest 20 000  (CONTENTSTACK_RETAIN_7_15D)
+ *   age < 7 days         → keep everything (the create step's fresh window)
  *
- * Strategy: for each content type, paginate ASC by `updated_at` (oldest first)
- * and DELETE *every* entry older than the cutoff — no keep-floor, no per-run
- * cap. "Delete all entries older than N days" means all of them, every run.
- * The create step (which runs after delete in the periodic pipeline) repopulates
- * the < N-day window, so the bulk-publish / workflow phases still have entries.
+ * Caps are TOTALS across all scanned content types; each content type gets an
+ * even share (cap / #contentTypes). Within a band we list ASC by created_at,
+ * collect the oldest `count - cap` entries, and delete them concurrently.
  *
- * Token: stack-level CONTENTSTACK_MANAGEMENT_TOKEN — DELETE /v3/entries is
- * within the management token's scope per Contentstack docs.
+ * Token: stack-level CONTENTSTACK_MANAGEMENT_TOKEN — DELETE /v3/entries is in scope.
  *
  * Env knobs:
- *   CONTENTSTACK_DELETE_OLDER_THAN_DAYS  — cutoff in days (default 7)
- *   CONTENTSTACK_DELETE_CONTENT_TYPES    — CSV; default = content-types manifest
- *   (CONTENTSTACK_DELETE_MAX_PER_RUN / _KEEP_NEWEST are no longer used — we now
- *    delete everything older than the cutoff.)
+ *   CONTENTSTACK_RETAIN_OVER_30D        — keep target for age > 30d  (default 5000)
+ *   CONTENTSTACK_RETAIN_15_30D          — keep target for 15–30d     (default 10000)
+ *   CONTENTSTACK_RETAIN_7_15D           — keep target for 7–15d      (default 20000)
+ *   CONTENTSTACK_RETAIN_DAYS_SHORT/_MID/_LONG — band boundaries (default 7/15/30)
+ *   CONTENTSTACK_DELETE_CONCURRENCY     — parallel deletes           (default 10)
+ *   CONTENTSTACK_DELETE_MAX_PER_RUN     — global safety cap, 0 = unlimited (default 0)
+ *   CONTENTSTACK_DELETE_CONTENT_TYPES   — CSV; default = content-types manifest
  *
  * Usage:
  *   node --env-file=.env scripts/delete-old-entries.mjs
@@ -40,7 +43,6 @@ import {
   listEntries,
   deleteEntry,
   optionalEnv,
-  sleep,
 } from './lib/cma.mjs'
 import { createProgress } from './lib/progress.mjs'
 import { writeStepReport } from './lib/report.mjs'
@@ -50,11 +52,18 @@ const __dirname = dirname(__filename)
 
 const argv = process.argv.slice(2)
 const DRY_RUN = argv.includes('--dry-run')
+const DAY_MS = 24 * 60 * 60 * 1000
 
 function csv(name, fallback = []) {
   const v = optionalEnv(name)
   if (!v) return fallback
   return v.split(',').map((s) => s.trim()).filter(Boolean)
+}
+
+function intEnv(name, dflt) {
+  const v = optionalEnv(name)
+  if (v != null && /^\d+$/.test(v.trim())) return Number.parseInt(v.trim(), 10)
+  return dflt
 }
 
 function deriveContentTypesFromManifest() {
@@ -67,84 +76,113 @@ function deriveContentTypesFromManifest() {
   }
 }
 
-async function deleteFromContentType(base, headers, ctUid, locale, opts) {
-  const { cutoffMs } = opts
+/** Run `worker` over `items` with at most `concurrency` in flight. */
+async function poolForEach(items, concurrency, worker) {
+  let next = 0
+  const lanes = Array.from(
+    { length: Math.max(1, Math.min(concurrency, items.length)) },
+    async () => {
+      for (;;) {
+        const i = next
+        next += 1
+        if (i >= items.length) break
+        await worker(items[i])
+      }
+    },
+  )
+  await Promise.all(lanes)
+}
 
-  // Phase 1 — paginate ASC by updated_at (oldest first) and collect EVERY entry
-  // older than the cutoff. No keep-floor, no per-run cap: "delete all older than
-  // N days" means all of them. Because the sort is ascending, every entry older
-  // than the cutoff is contiguous at the front — the first entry we hit that is
-  // >= cutoff means all remaining are newer, so we can stop. We collect first,
-  // then delete (so deletions never shift the pages we're still reading).
-  const toDelete = []
+/** created_at filter for a band (open-ended on either side via null). */
+function bandQuery(band) {
+  const created_at = {}
+  if (band.gteMs != null) created_at.$gte = new Date(band.gteMs).toISOString()
+  if (band.ltMs != null) created_at.$lt = new Date(band.ltMs).toISOString()
+  return { created_at }
+}
+
+/** Trim one content type's band down to `perCtCap`, deleting the oldest excess. */
+async function trimBand(base, headers, ctUid, locale, band, perCtCap, ctx) {
+  const query = bandQuery(band)
+
+  // 1. How many entries are in this band right now?
+  const head = await listEntries(base, headers, ctUid, {
+    locale,
+    limit: 1,
+    skip: 0,
+    includeCount: true,
+    query,
+  })
+  if (!head.ok) {
+    console.warn(`  ${ctUid} [${band.name}]: count query failed — skipping band`)
+    return { count: 0, deleted: 0 }
+  }
+  const count = head.body.count ?? 0
+  if (count <= perCtCap) {
+    console.log(`  ${ctUid} [${band.name}]: ${count} ≤ keep ${perCtCap} — nothing to trim`)
+    return { count, deleted: 0 }
+  }
+
+  let excess = count - perCtCap
+  if (ctx.maxPerRun > 0) {
+    const remaining = ctx.maxPerRun - ctx.deletedTotal
+    if (remaining <= 0) {
+      console.warn(`  ${ctUid} [${band.name}]: per-run cap (${ctx.maxPerRun}) reached — deferring ${excess} to next run`)
+      ctx.deferred += excess
+      return { count, deleted: 0 }
+    }
+    if (excess > remaining) {
+      ctx.deferred += excess - remaining
+      excess = remaining
+    }
+  }
+
+  // 2. Collect the oldest `excess` uids (ASC by created_at). Reads only — we
+  //    collect before deleting so pagination is not disturbed by deletes.
+  const uids = []
   let skip = 0
-  let scanned = 0
-  for (;;) {
-    const { ok, body } = await listEntries(base, headers, ctUid, {
+  while (uids.length < excess) {
+    const page = await listEntries(base, headers, ctUid, {
       locale,
       limit: 100,
       skip,
-      asc: 'updated_at',
+      asc: 'created_at',
+      query,
     })
-    if (!ok) {
-      console.warn(`  ${ctUid}: listEntries failed (skip=${skip}) — stopping this CT`)
+    if (!page.ok) {
+      console.warn(`  ${ctUid} [${band.name}]: list failed at skip=${skip} — deleting what we have`)
       break
     }
-    const entries = body.entries || []
+    const entries = page.body.entries || []
     if (entries.length === 0) break
-    scanned += entries.length
-    let hitNewer = false
     for (const e of entries) {
-      const t = e.updated_at ? Date.parse(e.updated_at) : NaN
-      if (Number.isFinite(t) && t < cutoffMs) {
-        toDelete.push(e)
-      } else {
-        hitNewer = true // ascending → first one at/after cutoff ends the old run
-        break
-      }
+      uids.push(e.uid)
+      if (uids.length >= excess) break
     }
-    if (hitNewer) break
     skip += entries.length
   }
 
-  if (toDelete.length === 0) {
-    console.log(`  ${ctUid}: scanned=${scanned} deleted=0 (nothing older than cutoff)`)
-    return { deleted: 0, scanned }
-  }
-
-  // Phase 2 — delete every collected entry.
-  console.log(`  ${ctUid}: ${toDelete.length} entries older than cutoff → deleting all`)
-  const progress = createProgress({
-    label: `${ctUid} delete`,
-    total: toDelete.length,
-    everyN: 25,
-  })
+  // 3. Delete them, concurrently.
+  console.log(`  ${ctUid} [${band.name}]: ${count} in band, keep ${perCtCap} → deleting ${uids.length} oldest`)
+  const progress = createProgress({ label: `${ctUid} [${band.name}]`, total: uids.length, everyN: 50 })
   let deleted = 0
-  for (const e of toDelete) {
+  await poolForEach(uids, ctx.concurrency, async (uid) => {
     if (DRY_RUN) {
-      console.log(`  [dry-run] DELETE ${ctUid}/${e.uid}  updated_at=${e.updated_at}`)
-      deleted++
+      deleted += 1
       progress.tick({ ok: true })
-      continue
+      return
     }
-    const { ok: dOk, status, body: dBody } = await deleteEntry(base, headers, {
+    const { ok } = await deleteEntry(base, headers, {
       contentTypeUid: ctUid,
-      entryUid: e.uid,
+      entryUid: uid,
       locale,
     })
-    if (dOk) {
-      deleted++
-      progress.tick({ ok: true })
-    } else {
-      console.warn(
-        `  ✗ ${ctUid}/${e.uid} delete failed (${status}): ${dBody?.error_message || JSON.stringify(dBody).slice(0, 160)}`,
-      )
-      progress.tick({ ok: false })
-    }
-    await sleep(80) // light throttle — DELETE is heavier than read
-  }
+    if (ok) deleted += 1
+    progress.tick({ ok })
+  })
   progress.done()
-  return { deleted, scanned }
+  ctx.deletedTotal += deleted
+  return { count, deleted }
 }
 
 async function main() {
@@ -152,41 +190,80 @@ async function main() {
   const tokens = loadManagementTokens()
   const headers = headersForToken(apiKey, tokens[0], branch)
 
-  const days = parseInt(optionalEnv('CONTENTSTACK_DELETE_OLDER_THAN_DAYS', '7'), 10)
   const contentTypes = csv(
     'CONTENTSTACK_DELETE_CONTENT_TYPES',
     deriveContentTypesFromManifest(),
   )
-
   if (contentTypes.length === 0) {
     console.error('No content types to scan. Set CONTENTSTACK_DELETE_CONTENT_TYPES or include a content-types manifest.')
     process.exit(1)
   }
 
-  const cutoffMs = Date.now() - days * 24 * 60 * 60 * 1000
+  const dShort = intEnv('CONTENTSTACK_RETAIN_DAYS_SHORT', 7)
+  const dMid = intEnv('CONTENTSTACK_RETAIN_DAYS_MID', 15)
+  const dLong = intEnv('CONTENTSTACK_RETAIN_DAYS_LONG', 30)
+  const capLong = intEnv('CONTENTSTACK_RETAIN_OVER_30D', 5000)
+  const capMid = intEnv('CONTENTSTACK_RETAIN_15_30D', 10000)
+  const capShort = intEnv('CONTENTSTACK_RETAIN_7_15D', 20000)
 
-  console.log(`delete-old-entries`)
-  console.log(`  stack:   api_key=${apiKey.slice(0, 10)}…  branch=${branch || '(none)'}`)
-  console.log(`  policy:  delete ALL entries > ${days} days old (no floor, no cap)`)
-  console.log(`  cutoff:  before ${new Date(cutoffMs).toISOString()}  (by updated_at)`)
-  console.log(`  scope:   ${contentTypes.join(', ')}`)
-  if (DRY_RUN) console.log('** DRY RUN — no API writes **')
+  const now = Date.now()
+  // Newest band first does not matter; older-first is clearer in logs.
+  const bands = [
+    { name: `>${dLong}d`, gteMs: null, ltMs: now - dLong * DAY_MS, cap: capLong },
+    { name: `${dMid}-${dLong}d`, gteMs: now - dLong * DAY_MS, ltMs: now - dMid * DAY_MS, cap: capMid },
+    { name: `${dShort}-${dMid}d`, gteMs: now - dMid * DAY_MS, ltMs: now - dShort * DAY_MS, cap: capShort },
+  ]
 
-  let totalDeleted = 0
-  let totalScanned = 0
-  for (const ctUid of contentTypes) {
-    const { deleted, scanned } = await deleteFromContentType(base, headers, ctUid, locale, {
-      cutoffMs,
-    })
-    totalDeleted += deleted
-    totalScanned += scanned
+  const ctx = {
+    concurrency: intEnv('CONTENTSTACK_DELETE_CONCURRENCY', 10),
+    // Bound per-run work so a large backlog drains over several cron runs instead
+    // of one multi-hour job that overruns the 5-min schedule. Set 0 = unlimited.
+    maxPerRun: intEnv('CONTENTSTACK_DELETE_MAX_PER_RUN', 6000),
+    deletedTotal: 0,
+    deferred: 0,
   }
 
-  console.log(`\n✓ done — ${totalDeleted} deleted (scanned ${totalScanned}) across ${contentTypes.length} content type(s)`)
+  console.log('delete-old-entries — tiered retention')
+  console.log(`  stack:   api_key=${apiKey.slice(0, 10)}…  branch=${branch || '(none)'}`)
+  console.log(`  scope:   ${contentTypes.join(', ')}  (caps split evenly per CT)`)
+  for (const b of bands) {
+    console.log(`  band:    ${b.name} → keep ${b.cap} total (~${Math.ceil(b.cap / contentTypes.length)}/CT)`)
+  }
+  console.log(`  delete:  concurrency=${ctx.concurrency}  max-per-run=${ctx.maxPerRun || 'unlimited'}`)
+  if (DRY_RUN) console.log('** DRY RUN — no API writes **')
+
+  // Per-band running totals for the dashboard.
+  const perBand = {}
+  for (const b of bands) perBand[b.name] = { inBand: 0, deleted: 0 }
+
+  for (const ctUid of contentTypes) {
+    for (const band of bands) {
+      const perCtCap = Math.ceil(band.cap / contentTypes.length)
+      const { count, deleted } = await trimBand(base, headers, ctUid, locale, band, perCtCap, ctx)
+      perBand[band.name].inBand += count
+      perBand[band.name].deleted += deleted
+    }
+  }
+
+  const totalDeleted = ctx.deletedTotal
+  console.log(`\n✓ done — ${totalDeleted} deleted across ${contentTypes.length} content type(s)`)
+  for (const b of bands) {
+    console.log(`    ${b.name}: ${perBand[b.name].deleted} deleted (band size ${perBand[b.name].inBand})`)
+  }
+  if (ctx.deferred > 0) {
+    console.log(`    (deferred ${ctx.deferred} to next run — per-run cap)`) // not silent: surfaced
+  }
+
   writeStepReport({
-    planned: totalScanned,
+    planned: totalDeleted + ctx.deferred, // what we intended to remove this run
     actual: totalDeleted,
-    kpis: { deleted: totalDeleted, scanned: totalScanned },
+    kpis: {
+      deleted: totalDeleted,
+      deferred: ctx.deferred,
+      deletedOver30d: perBand[bands[0].name].deleted,
+      deleted15to30d: perBand[bands[1].name].deleted,
+      deleted7to15d: perBand[bands[2].name].deleted,
+    },
   })
 }
 

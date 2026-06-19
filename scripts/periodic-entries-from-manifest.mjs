@@ -1,5 +1,21 @@
 /**
- * Create + publish entries only (no content types). For cron / GitHub Actions every N minutes.
+ * Create entries in bulk (no content types). For cron / GitHub Actions every N minutes.
+ *
+ * Volume:
+ *   - CONTENTSTACK_PERIODIC_COUNT — if set, every enabled content type creates
+ *     exactly this many (legacy per-CT behavior).
+ *   - otherwise CONTENTSTACK_PERIODIC_TOTAL (default 10000) is the total per run,
+ *     split evenly across the content types whose manifest entry has
+ *     periodic.enabled. A manifest `periodic.count` always overrides for that CT.
+ *
+ * Throughput: CONTENTSTACK_PERIODIC_CONCURRENCY (default 12) creates run in
+ *   parallel. Entries are created (not published) here — the separate
+ *   bulk-publish step publishes a sample, which keeps the per-run API load to
+ *   one call per entry instead of two.
+ *
+ * The org entry cap (error_code 133) is org-wide, so the first time we hit it we
+ * stop creating for the rest of the run (non-fatal — downstream steps still run).
+ *
  * Run: npm run automate:entries:periodic
  */
 
@@ -11,10 +27,9 @@ import path from 'node:path'
 import {
   loadStackAuth,
   managementHeaders,
-  createAndPublishEntry,
+  createEntry,
   getLatestEntryUid,
   getFirstEntryUid,
-  sleep,
   optionalEnv,
 } from './lib/cma.mjs'
 import {
@@ -25,6 +40,9 @@ import {
 import { writeStepReport } from './lib/report.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+const DEFAULT_TOTAL = 10000
+const DEFAULT_CONCURRENCY = 12
 
 async function loadManifest(manifestPath) {
   const raw = await readFile(manifestPath, 'utf8')
@@ -37,20 +55,34 @@ async function loadManifest(manifestPath) {
 
 function uniqueTitle() {
   const iso = new Date().toISOString().replace(/[:.]/g, '-')
-  const rnd = randomBytes(3).toString('hex')
+  const rnd = randomBytes(4).toString('hex')
   return `auto ${iso} ${rnd}`
 }
 
-function defaultPeriodicCount(manifest) {
-  const fromEnv = optionalEnv('CONTENTSTACK_PERIODIC_COUNT')
-  if (fromEnv && /^\d+$/.test(fromEnv)) return Number.parseInt(fromEnv, 10)
-  if (
-    manifest.defaults &&
-    typeof manifest.defaults.periodicCount === 'number'
-  ) {
-    return manifest.defaults.periodicCount
-  }
-  return 1
+function intEnv(name) {
+  const v = optionalEnv(name)
+  if (v && /^\d+$/.test(v)) return Number.parseInt(v, 10)
+  return null
+}
+
+/**
+ * Run `total` tasks with at most `concurrency` in flight. `worker(index)` is
+ * awaited for each; it may inspect shared state to bail out early (org cap).
+ */
+async function runPool(total, concurrency, worker) {
+  let next = 0
+  const lanes = Array.from(
+    { length: Math.max(1, Math.min(concurrency, total)) },
+    async () => {
+      for (;;) {
+        const i = next
+        next += 1
+        if (i >= total) break
+        await worker(i)
+      }
+    },
+  )
+  await Promise.all(lanes)
 }
 
 async function main() {
@@ -66,7 +98,51 @@ async function main() {
 
   console.log('Periodic entries — manifest:', manifestPath)
   const manifest = await loadManifest(manifestPath)
-  const globalDefaultCount = defaultPeriodicCount(manifest)
+
+  // Resolve the set of content types we will create for, plus their templates.
+  const enabled = []
+  for (const ct of manifest.contentTypes) {
+    const p = ct.periodic
+    if (!p || !p.enabled) continue
+    const template =
+      p.entryTemplate ??
+      (Array.isArray(ct.entries) && ct.entries.length > 0
+        ? ct.entries[ct.entries.length - 1]
+        : null)
+    if (!template) {
+      console.warn(
+        `Skipping periodic for ${ct.uid}: set periodic.entryTemplate or seed entries[]`,
+      )
+      continue
+    }
+    enabled.push({ uid: ct.uid, count: p.count, template })
+  }
+
+  if (enabled.length === 0) {
+    console.log(
+      'No content types with periodic.enabled; set periodic in the manifest or use automate:manifest for bootstrap.',
+    )
+    writeStepReport({ planned: 0, actual: 0, kpis: { created: 0 } })
+    return
+  }
+
+  // Decide per-CT counts.
+  const perCtEnv = intEnv('CONTENTSTACK_PERIODIC_COUNT')
+  const total = intEnv('CONTENTSTACK_PERIODIC_TOTAL') ?? DEFAULT_TOTAL
+  const evenSplit = Math.ceil(total / enabled.length)
+  const concurrency = intEnv('CONTENTSTACK_PERIODIC_CONCURRENCY') ?? DEFAULT_CONCURRENCY
+
+  function countFor(ct) {
+    if (typeof ct.count === 'number') return ct.count // explicit manifest override
+    if (perCtEnv != null) return perCtEnv // legacy per-CT env
+    return evenSplit
+  }
+
+  console.log(
+    `Plan: ${enabled.length} content type(s), ${
+      perCtEnv != null ? `${perCtEnv}/CT (legacy)` : `${total} total → ~${evenSplit}/CT`
+    }, concurrency ${concurrency}.`,
+  )
 
   const registry = new EntryUidRegistry()
 
@@ -77,90 +153,84 @@ async function main() {
     return getFirstEntryUid(base, headers, ctUid, locale, publishEnv)
   }
 
-  let ran = 0
   let created = 0
   let planned = 0
-  for (const ct of manifest.contentTypes) {
-    const p = ct.periodic
-    if (!p || !p.enabled) continue
-    ran += 1
+  let failed = 0
+  let capHit = false
 
-    const count =
-      typeof p.count === 'number' ? p.count : globalDefaultCount
-
-    const templateSource =
-      p.entryTemplate ??
-      (Array.isArray(ct.entries) && ct.entries.length > 0
-        ? ct.entries[ct.entries.length - 1]
-        : null)
-
-    if (!templateSource) {
-      console.warn(
-        `Skipping periodic for ${ct.uid}: set periodic.entryTemplate or seed entries[]`,
-      )
-      continue
-    }
-
+  // Content types are processed in order (so reference targets exist before the
+  // types that reference them); creation within a content type runs concurrently.
+  for (const ct of enabled) {
+    if (capHit) break
+    const count = countFor(ct)
     planned += count
-    for (let i = 0; i < count; i += 1) {
-      const merged = deepClone(templateSource)
+    let stopped = false
+
+    await runPool(count, concurrency, async () => {
+      if (stopped) return
+      const merged = deepClone(ct.template)
       merged.title = uniqueTitle()
-      const fields = await resolveEntryPlaceholdersAsync(
-        merged,
-        registry,
-        fetchRef,
-      )
 
-      const result = await createAndPublishEntry(
-        base,
-        headers,
-        ct.uid,
-        fields,
-        locale,
-        publishEnv,
-      )
-      await sleep(300)
-      if (!result.ok) {
-        // Org-level entry cap (error_code 133): plan limit, not a script bug.
-        // Stop adding more for this content type but exit 0 so the
-        // orchestrator's downstream steps (publishing, workflow transitions)
-        // still run on existing entries.
-        if (result.status === 422 && result.body?.error_code === 133) {
-          console.warn(
-            `Org entry cap reached for ${ct.uid} — skipping remaining periodic entries (code 133, non-fatal).`,
-          )
-          break
-        }
-        console.error(
-          `Periodic entry failed for ${ct.uid} (${result.step}):`,
-          result.status,
-          result.body,
-        )
-        process.exit(1)
+      let fields
+      try {
+        fields = await resolveEntryPlaceholdersAsync(merged, registry, fetchRef)
+      } catch (e) {
+        failed += 1
+        if (failed <= 10) console.error(`Placeholder resolve failed for ${ct.uid}:`, e.message)
+        return
       }
-      registry.record(ct.uid, result.entryUid)
+
+      const result = await createEntry(base, headers, ct.uid, fields, locale)
+      if (!result.ok) {
+        // Org-level entry cap (error_code 133) is org-wide: once hit, every
+        // further create fails too, so stop the whole run (non-fatal).
+        if (result.status === 422 && result.body?.error_code === 133) {
+          if (!capHit) {
+            console.warn(
+              `Org entry cap reached (code 133) — stopping creation for this run.`,
+            )
+          }
+          stopped = true
+          capHit = true
+          return
+        }
+        failed += 1
+        if (failed <= 10) {
+          console.error(
+            `Create failed for ${ct.uid}:`,
+            result.status,
+            result.body?.error_message || result.body,
+          )
+        }
+        return
+      }
+
+      const uid = result.body?.entry?.uid
+      if (uid) registry.record(ct.uid, uid)
       created += 1
-      console.log(
-        'Periodic: created + published',
-        result.entryUid,
-        'in',
-        ct.uid,
-      )
-    }
+      if (created % 500 === 0) console.log(`...created ${created}`)
+    })
   }
 
-  if (ran === 0) {
-    console.log(
-      'No content types with periodic.enabled; set periodic in the manifest or use automate:manifest for bootstrap.',
-    )
-  }
+  console.log(
+    `Periodic run complete — created ${created}/${planned}` +
+      (failed ? `, ${failed} failed` : '') +
+      (capHit ? ' (org entry cap reached)' : '') +
+      '.',
+  )
 
-  console.log('Periodic run complete.')
   writeStepReport({
     planned,
     actual: created,
-    kpis: { created },
+    failed,
+    kpis: { created, failed, capHit: capHit ? 1 : 0 },
   })
+
+  // Only treat the run as failed if nothing at all was created despite trying
+  // and it was not simply the org cap (transient/auth problem worth surfacing).
+  if (created === 0 && planned > 0 && !capHit) {
+    process.exit(1)
+  }
 }
 
 main().catch((e) => {

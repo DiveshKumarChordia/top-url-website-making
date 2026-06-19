@@ -63,6 +63,19 @@ function deriveContentTypesFromManifest() {
   }
 }
 
+// Single source of truth for target locales: every non-master locale declared
+// in locales-branches.manifest.json. Adding a locale there automatically widens
+// localization (no need to also touch CONTENTSTACK_LOCALIZE_TARGETS).
+function deriveLocalesFromManifest() {
+  try {
+    const path = resolve(__dirname, 'locales-branches.manifest.json')
+    const manifest = JSON.parse(readFileSync(path, 'utf-8'))
+    return (manifest.locales || []).map((l) => l.code).filter(Boolean)
+  } catch {
+    return ['fr-fr', 'de-de', 'en-gb']
+  }
+}
+
 /**
  * Generate a localized title for an entry given a target locale code.
  * Keeps the original title as the trunk and prefixes with a locale tag so
@@ -176,7 +189,7 @@ async function main() {
   const tokens = loadManagementTokens()
   const headers = headersForToken(apiKey, tokens[0], branch)
 
-  const targets = csv('CONTENTSTACK_LOCALIZE_TARGETS', ['fr-fr', 'de-de', 'en-gb'])
+  const targets = csv('CONTENTSTACK_LOCALIZE_TARGETS', deriveLocalesFromManifest())
   const contentTypes = csv(
     'CONTENTSTACK_LOCALIZE_CONTENT_TYPES',
     deriveContentTypesFromManifest(),

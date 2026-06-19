@@ -54,8 +54,18 @@ Vite + React app that lists **published** entries for one or more content types 
    | Variable | Purpose |
    |----------|---------|
    | `CONTENTSTACK_MANIFEST_PATH` | Custom manifest path (default `scripts/content-types.manifest.json`) |
-   | `CONTENTSTACK_PERIODIC_COUNT` | Batch size per `periodic.enabled` type when manifest `periodic.count` is omitted |
-   | `CONTENTSTACK_MANIFEST_SKIP_SEEDS` | `true` = bootstrap without POSTing seed entries |
+   | `CONTENTSTACK_PERIODIC_TOTAL` | **Total** entries to create per run, split evenly across `periodic.enabled` types (default **10000**) |
+   | `CONTENTSTACK_PERIODIC_COUNT` | Legacy: fixed batch **per type** (overrides `_TOTAL`); a numeric manifest `periodic.count` still wins per type |
+   | `CONTENTSTACK_PERIODIC_CONCURRENCY` | Parallel creates in the periodic step (default `12`) |
+   | `CONTENTSTACK_RETAIN_OVER_30D` / `_15_30D` / `_7_15D` | Tiered-retention keep targets per age band (default `5000` / `10000` / `20000`, totals across types) |
+   | `CONTENTSTACK_RETAIN_DAYS_SHORT` / `_MID` / `_LONG` | Age-band boundaries in days (default `7` / `15` / `30`) |
+   | `CONTENTSTACK_DELETE_CONCURRENCY` | Parallel deletes in the retention step (default `10`) |
+   | `CONTENTSTACK_DELETE_MAX_PER_RUN` | Safety cap on deletes per run, `0` = unlimited (default `6000`, drains a backlog over several runs) |
+   | `CONTENTSTACK_PUBLISH_RATIO` / `CONTENTSTACK_UNPUBLISH_RATIO` | Fraction of created entries to publish / unpublish (default `0.6` / `0.15`) |
+   | `CONTENTSTACK_BULK_BATCH` | Entries per bulk publish/unpublish request (default `100`) |
+   | `CONTENTSTACK_PUBLISH_TRANSITION_CONCURRENCY` | Parallel stage transitions before publishing (default `6`) |
+   | `CONTENTSTACK_USER_AUTHTOKEN` | Logged-in user authtoken for stage transitions (skips `/user-session` login; needed so publishing clears the Publish Rule) |
+   | `CONTENTSTACK_MANIFEST_SKIP_SEEDS` | `true` = bootstrap without POSTing seed entries (periodic uses this to ensure CTs without re-seeding) |
    | `CONTENTSTACK_MANIFEST_SKIP_DUPLICATE_SEEDS` | Duplicate seed titles: skip + hydrate refs unless set to `false` |
    | `CONTENTSTACK_AUTO_ENTRY_TITLE` | Fixed title for `npm run automate:entry` only |
    | `CONTENTSTACK_TAXONOMY_UID_*` / `CONTENTSTACK_TAXONOMY_TERMS_*` | Only if you use taxonomy shorthand or `__TAX_TERMS__` placeholders ([AUTOMATION.md](./AUTOMATION.md)) |
@@ -103,18 +113,34 @@ Typical use cases:
 | **Contentstack Launch** | Connect the repo; build outputs `dist/`; set `VITE_*` for the Delivery API so the app lists **published** entries. |
 | **Demo / load-style churn** | Periodic job + `CONTENTSTACK_PERIODIC_COUNT` (see below) — watch [Management API](https://www.contentstack.com/docs/developers/apis/content-management-api) limits and clean up test data. |
 
-### Periodic run: how many entries?
+### Periodic run: how many entries created, and how many kept?
 
-For each content type in [`scripts/content-types.manifest.json`](scripts/content-types.manifest.json) with `periodic.enabled`, the script creates **N** entries per **workflow run**, where **N** is resolved in this order:
+**Created per run.** The default is **`CONTENTSTACK_PERIODIC_TOTAL` = 10000**, split evenly across the `periodic.enabled` content types (so 5 types ⇒ ~2000 each). Resolution order per type:
 
-1. **`periodic.count`** in the manifest — if this property is a **number**, it wins and **ignores** `CONTENTSTACK_PERIODIC_COUNT`.
-2. Otherwise **`CONTENTSTACK_PERIODIC_COUNT`** (e.g. GitHub Actions secret).
-3. Otherwise **`defaults.periodicCount`** in the manifest.
-4. Otherwise **1**.
+1. A **numeric `periodic.count`** in the manifest — exact count for that type.
+2. Otherwise **`CONTENTSTACK_PERIODIC_COUNT`** — a fixed count applied to *every* type (legacy).
+3. Otherwise the even split of **`CONTENTSTACK_PERIODIC_TOTAL`** (default 10000).
 
-**This repo’s demo manifest omits `periodic.count`**, so `CONTENTSTACK_PERIODIC_COUNT` (or `defaults.periodicCount`) applies. If you **add** a numeric `periodic.count` on a content type, it overrides the secret for that type only.
+Creates run with `CONTENTSTACK_PERIODIC_CONCURRENCY` (default 12) in parallel, and entries are **created only** — the separate bulk-publish step publishes/unpublishes a ratio of them, so the per-run create cost is one API call per entry. Types are processed in manifest order so reference targets exist before the types that reference them.
 
-Example write volume: **3** enabled types × **20** entries × **12** runs/hour (cron every 5 min) ⇒ **720** new entries/hour until you lower the secret, add per-type `periodic.count`, or change the schedule.
+**Published vs unpublished — a ratio of what was created.** `bulk-publish-cycle.mjs` reads the periodic step's created count and acts on a ratio: `CONTENTSTACK_PUBLISH_RATIO` (default **0.6**) published, `CONTENTSTACK_UNPUBLISH_RATIO` (default **0.15**) unpublished, batched at `CONTENTSTACK_BULK_BATCH` (default 100). Because the demo workflows carry a **Publish Rule** (publishing is only allowed once an entry reaches the approved stage — Editorial→*Approved*, Marketing→*Ready to Publish*, Quick→*Done*), the step first **transitions** the publish set into that stage. Stage transitions need a **user session** (management tokens can't change stages), so set `CONTENTSTACK_USER_AUTHTOKEN` (preferred) or `CONTENTSTACK_USER_EMAIL`+`_PASSWORD`/`_TOTP_SECRET`. Without one, publishing stays blocked at 422 by the rule.
+
+**Locales & localization.** `seed-locales-branches.mjs` ensures 5 non-master locales with fallback **chains** (`fr-ca→fr-fr→en-us`, `de-at→de-de→en-us`, plus `en-gb`/`fr-fr`/`de-de`→`en-us`); `localize-entries.mjs` localizes newest entries into all of them (targets derive from the locales manifest, so adding a locale there widens localization automatically).
+
+**Kept per run — tiered retention** (`delete-old-entries.mjs`). Rather than "delete everything older than N days", each **age band** (by immutable `created_at`) has a keep target; the **oldest excess** beyond it is deleted:
+
+| Age band | Keep target (total) | Env |
+|----------|--------------------|-----|
+| `> 30 days` | 5 000 | `CONTENTSTACK_RETAIN_OVER_30D` |
+| `15–30 days` | 10 000 | `CONTENTSTACK_RETAIN_15_30D` |
+| `7–15 days` | 20 000 | `CONTENTSTACK_RETAIN_7_15D` |
+| `< 7 days` | everything (fresh window) | — |
+
+Targets are totals split evenly per content type; deletes run with `CONTENTSTACK_DELETE_CONCURRENCY` (default 10). Net effect: the stack converges on ~35 000 aged entries plus the < 7-day window, regardless of how aggressively the create step runs.
+
+> **Volume reality.** 10000 creates every 5 min is ~2.88M/day. You will hit the **org entry cap** (error code 133) long before that — which is fine: the create step stops gracefully (non-fatal, surfaced as *Org entry-cap hits* on the dashboard) and the retention step keeps trimming. The bands only fill as entries **age past 7/15/30 days**, so on a fresh stack only the `< 7d` window grows at first. Lower `CONTENTSTACK_PERIODIC_TOTAL` if you want gentler load.
+
+> **First-time setup.** The periodic phase now **ensures content types exist** (idempotent bootstrap, no re-seed) before creating — so a never-bootstrapped stack self-heals the CT-not-found cascade. Run **`--mode full`** (or `bootstrap`) **once** to also create locales, branches, workflows, and publishing rules.
 
 ### Diagrams (Mermaid)
 
@@ -261,10 +287,11 @@ sequenceDiagram
   end
 
   opt mode = periodic | full
-    Drive->>CMA: delete-old-entries → delete ALL entries > 7d (paginated, no floor/cap)
-    Drive->>CMA: periodic-entries → create entries (master locale)
+    Drive->>CMA: ensure content types (idempotent bootstrap, no re-seed)
+    Drive->>CMA: delete-old-entries → tiered retention: trim oldest excess per age band (>30d/15-30d/7-15d)
+    Drive->>CMA: periodic-entries → create ~10k entries, concurrently (master locale)
     Drive->>CMA: localize-entries → pre-check locales, PUT only missing (real errors surfaced)
-    Drive->>CMA: bulk-publish-cycle → publish/unpublish sample
+    Drive->>CMA: bulk-publish-cycle → transition publish-set to approved stage (user session) → publish/unpublish a ratio of created
     Drive->>CMA: seed-workflows → stage transitions (user session)
     Drive->>CMA: churn-orphans → disable/detach · branch/locale/$all-wf lifecycle · entry delete→restore
   end
@@ -280,10 +307,10 @@ sequenceDiagram
 | `seed-workflows.mjs` | Create workflows (idempotent) + **stage transitions** | mgmt + **user** | `POST/PUT /workflows`, `POST /entries/{uid}/workflow` |
 | `seed-publishing-rules.mjs` | Publishing rules per workflow stage | mgmt | `POST /workflows/.../publishing_rules` |
 | `ensure-stack-user-role.mjs` | **Give the automation user an explicit stack CMS role** | **user** | `GET /roles`, `POST /stacks/share` |
-| `periodic-entries-from-manifest.mjs` | Create entries (resolves `__REF__`) | mgmt | `POST /entries` |
-| `localize-entries.mjs` | Localize newest entries into target locales | mgmt | `GET /entries/{uid}/locales`, `PUT /entries/{uid}?locale=` |
-| `bulk-publish-cycle.mjs` | Publish/unpublish a sample | mgmt | `POST /bulk/publish|unpublish` |
-| `delete-old-entries.mjs` | **Delete ALL entries > N days (default 7) every run** | mgmt | `GET/DELETE /entries` |
+| `periodic-entries-from-manifest.mjs` | Create ~10k entries/run (resolves `__REF__`, concurrent, create-only) | mgmt | `POST /entries` |
+| `localize-entries.mjs` | Localize newest entries into the 5 manifest locales | mgmt | `GET /entries/{uid}/locales`, `PUT /entries/{uid}?locale=` |
+| `bulk-publish-cycle.mjs` | **Transition publish-set to approved stage, then publish/unpublish a ratio of created** | mgmt + **user** | `POST /entries/{uid}/workflow`, `POST /bulk/publish\|unpublish` |
+| `delete-old-entries.mjs` | **Tiered retention** — trim oldest excess per age band (>30d→5k, 15-30d→10k, 7-15d→20k), concurrent | mgmt | `GET/DELETE /entries` |
 | `churn-orphans.mjs` | **Drive every orphaning mutation** | mgmt | `PUT/DELETE /workflows`, `DELETE /branches`, `DELETE /locales`, `PUT /entries/.../restore` |
 | `drive-all.mjs` | Orchestrate bootstrap/periodic | inherits | spawns the above |
 
@@ -300,7 +327,7 @@ sequenceDiagram
 | locale create→delete | throwaway locale lifecycle | Axis 4 locale-delete path |
 | `$all` workflow create→delete | a workflow scoped to all CTs/branches | `$all` governance + workflow-delete |
 | entry delete→restore | soft-delete then restore an entry | Axis 1 delete (tombstone) + restore (un-flag) |
-| delete-old-entries | bulk delete > 7d | `entries_deleted` events; keeps the stack bounded |
+| delete-old-entries | tiered retention (trim oldest excess per age band) | `entries_deleted` events; converges the stack on a stable ~35k aged population |
 | localize-entries | new localized variants | `entry_created` keyed by non-master locale → Locale axis |
 
 ### Running

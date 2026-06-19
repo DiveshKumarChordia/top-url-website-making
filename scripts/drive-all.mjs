@@ -67,7 +67,7 @@ const MAX_HISTORY = parseInt(process.env.RUN_HISTORY_MAX || '300', 10)
  * naturally interleaved on stdout. Inherits env from the parent (which was
  * already loaded via --env-file=.env).
  */
-function runStep(name, script, extraArgs = []) {
+function runStep(name, script, extraArgs = [], extraEnv = {}) {
   const stepSlug = slug(name)
   return new Promise((resolveStep) => {
     const start = Date.now()
@@ -77,7 +77,7 @@ function runStep(name, script, extraArgs = []) {
       [resolve(__dirname, script), ...extraArgs, ...(DRY_RUN ? ['--dry-run'] : [])],
       {
         stdio: 'inherit',
-        env: { ...process.env, RUN_REPORT_DIR, RUN_STEP_SLUG: stepSlug },
+        env: { ...process.env, ...extraEnv, RUN_REPORT_DIR, RUN_STEP_SLUG: stepSlug },
       },
     )
     child.on('close', (code) => {
@@ -116,9 +116,18 @@ async function bootstrapPhase() {
 
 async function periodicPhase() {
   const results = []
-  // 1. Delete entries older than N days — keeps the org under its entry cap
-  //    and drives entry_deleted meter events. Runs first so the create step
-  //    has headroom even when the org is near its cap.
+  // 0. Ensure the content types exist (idempotent — skips ones already present,
+  //    skips re-seeding). Without this, a stack that was never bootstrapped fails
+  //    every create/localize/publish/workflow step with "Content Type not found".
+  //    (Run `--mode full` once for locales/branches/workflows too.)
+  results.push(
+    await runStep('ensure content types', 'bootstrap-from-manifest.mjs', [], {
+      CONTENTSTACK_MANIFEST_SKIP_SEEDS: 'true',
+    }),
+  )
+  // 1. Tiered retention — trim each age band to its target population (keeps the
+  //    org under its entry cap and drives entry_deleted meter events). Runs first
+  //    so the create step has headroom.
   results.push(await runStep('delete old entries', 'delete-old-entries.mjs'))
   // 2. Create new entries in the master locale (resolves __REF__ placeholders).
   results.push(await runStep('periodic entries from manifest', 'periodic-entries-from-manifest.mjs'))
