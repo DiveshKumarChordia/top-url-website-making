@@ -1,1 +1,221 @@
-[]
+[
+  {
+    "runId": "27849987786",
+    "runNumber": 1214,
+    "instance": "cs-dev22-sso",
+    "mode": "periodic",
+    "dryRun": false,
+    "startedAt": "2026-06-19T21:50:17.281Z",
+    "finishedAt": "2026-06-19T21:50:32.839Z",
+    "durationMs": 15558,
+    "stepsOk": 7,
+    "stepsTotal": 8,
+    "kpis": {
+      "deleted": 0,
+      "deferred": 0,
+      "deletedOver30d": 0,
+      "deleted15to30d": 0,
+      "deleted7to15d": 0,
+      "created": 10,
+      "failed": 90,
+      "capHit": 0,
+      "localized": 0,
+      "already": 0,
+      "localizeFailed": 50,
+      "localeTargets": 5,
+      "published": 0,
+      "unpublished": 0,
+      "publishFailed": 0,
+      "transitioned": 0,
+      "transitionFailed": 0,
+      "casesOk": 1,
+      "casesFailed": 5,
+      "churnLocale": 1,
+      "branchesCreated": 0,
+      "branchEntries": 0,
+      "branchLocalized": 0,
+      "dynCtCreated": 0,
+      "dynCtEntries": 0,
+      "workflowBranchAdds": 0,
+      "secondWaveEntries": 0,
+      "transitions": 0,
+      "publishRules": 0,
+      "branchesDeleted": 0,
+      "ctsDeleted": 0
+    },
+    "steps": [
+      {
+        "name": "ensure content types",
+        "ok": true,
+        "ms": 3686,
+        "planned": null,
+        "actual": null,
+        "failed": 0,
+        "kpis": {},
+        "errors": []
+      },
+      {
+        "name": "delete old entries",
+        "ok": true,
+        "ms": 1848,
+        "planned": 0,
+        "actual": 0,
+        "failed": 0,
+        "kpis": {
+          "deleted": 0,
+          "deferred": 0,
+          "deletedOver30d": 0,
+          "deleted15to30d": 0,
+          "deleted7to15d": 0
+        },
+        "errors": []
+      },
+      {
+        "name": "periodic entries from manifest",
+        "ok": true,
+        "ms": 1076,
+        "planned": 100,
+        "actual": 10,
+        "failed": 90,
+        "kpis": {
+          "created": 10,
+          "failed": 90,
+          "capHit": 0
+        },
+        "errors": []
+      },
+      {
+        "name": "localize entries",
+        "ok": false,
+        "ms": 1670,
+        "planned": 50,
+        "actual": 0,
+        "failed": 50,
+        "kpis": {
+          "localized": 0,
+          "already": 0,
+          "localizeFailed": 50,
+          "localeTargets": 5
+        },
+        "errors": []
+      },
+      {
+        "name": "bulk publish cycle",
+        "ok": true,
+        "ms": 2641,
+        "planned": 0,
+        "actual": 0,
+        "failed": 0,
+        "kpis": {
+          "published": 0,
+          "unpublished": 0,
+          "publishFailed": 0,
+          "transitioned": 0,
+          "transitionFailed": 0
+        },
+        "errors": []
+      },
+      {
+        "name": "workflow transitions on existing entries",
+        "ok": true,
+        "ms": 583,
+        "planned": null,
+        "actual": null,
+        "failed": 0,
+        "kpis": {},
+        "errors": []
+      },
+      {
+        "name": "churn orphan cases",
+        "ok": true,
+        "ms": 3732,
+        "planned": 6,
+        "actual": 1,
+        "failed": 5,
+        "kpis": {
+          "casesOk": 1,
+          "casesFailed": 5,
+          "churnLocale": 1
+        },
+        "errors": [
+          {
+            "label": "disable→enable",
+            "message": "Churn $all 260619143208 (off 422, on 422)"
+          },
+          {
+            "label": "detach→reattach CT",
+            "message": "Quick Publish ⟂ demo_blocks (detach 422, reattach 422)"
+          },
+          {
+            "label": "branch create→delete",
+            "message": "create 422"
+          },
+          {
+            "label": "$all workflow create→delete",
+            "message": "Churn $all 260619215031 (delete 422)"
+          },
+          {
+            "label": "entry delete→restore",
+            "message": "demo_plain_text/blt7debaa7704bc43a8 (delete 200, restore 422)"
+          }
+        ]
+      },
+      {
+        "name": "branch lifecycle",
+        "ok": true,
+        "ms": 318,
+        "planned": 3,
+        "actual": 0,
+        "failed": 1,
+        "kpis": {
+          "branchesCreated": 0,
+          "branchEntries": 0,
+          "branchLocalized": 0,
+          "dynCtCreated": 0,
+          "dynCtEntries": 0,
+          "workflowBranchAdds": 0,
+          "secondWaveEntries": 0,
+          "transitions": 0,
+          "published": 0,
+          "unpublished": 0,
+          "publishRules": 0,
+          "branchesDeleted": 0,
+          "ctsDeleted": 0
+        },
+        "errors": []
+      }
+    ],
+    "errors": [
+      {
+        "step": "localize entries",
+        "label": null,
+        "message": "step exited non-zero"
+      },
+      {
+        "step": "churn orphan cases",
+        "label": "disable→enable",
+        "message": "Churn $all 260619143208 (off 422, on 422)"
+      },
+      {
+        "step": "churn orphan cases",
+        "label": "detach→reattach CT",
+        "message": "Quick Publish ⟂ demo_blocks (detach 422, reattach 422)"
+      },
+      {
+        "step": "churn orphan cases",
+        "label": "branch create→delete",
+        "message": "create 422"
+      },
+      {
+        "step": "churn orphan cases",
+        "label": "$all workflow create→delete",
+        "message": "Churn $all 260619215031 (delete 422)"
+      },
+      {
+        "step": "churn orphan cases",
+        "label": "entry delete→restore",
+        "message": "demo_plain_text/blt7debaa7704bc43a8 (delete 200, restore 422)"
+      }
+    ]
+  }
+]
