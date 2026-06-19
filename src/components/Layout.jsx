@@ -19,6 +19,13 @@ export function Layout() {
             </div>
           </Link>
           <div className="site-header__actions">
+            <Link
+              to="/runs"
+              className="site-header__refresh"
+              aria-label="Automation runs dashboard"
+            >
+              Runs
+            </Link>
             {isHome ? (
               <button
                 type="button"

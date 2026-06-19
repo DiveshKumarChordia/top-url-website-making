@@ -31,9 +31,19 @@
 import { spawn } from 'node:child_process'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import {
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+  appendFileSync,
+  existsSync,
+} from 'node:fs'
+import { tmpdir } from 'node:os'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
+const repoRoot = resolve(__dirname, '..')
 
 const argv = process.argv.slice(2)
 const modeIdx = argv.indexOf('--mode')
@@ -45,6 +55,12 @@ if (!['periodic', 'bootstrap', 'full'].includes(MODE)) {
   process.exit(2)
 }
 
+// Per-step KPI reports: each child writes ${RUN_REPORT_DIR}/${slug}.json via
+// lib/report.mjs; runStep reads it back on close.
+const RUN_REPORT_DIR = mkdtempSync(resolve(tmpdir(), 'drive-report-'))
+const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+const MAX_HISTORY = parseInt(process.env.RUN_HISTORY_MAX || '300', 10)
+
 /**
  * Run a sub-script as a child node process so the orchestrator is robust to
  * any sub-script calling process.exit() and so the per-step output stays
@@ -52,23 +68,33 @@ if (!['periodic', 'bootstrap', 'full'].includes(MODE)) {
  * already loaded via --env-file=.env).
  */
 function runStep(name, script, extraArgs = []) {
+  const stepSlug = slug(name)
   return new Promise((resolveStep) => {
     const start = Date.now()
     console.log(`\n${'━'.repeat(60)}\n▶ ${name}\n${'━'.repeat(60)}`)
     const child = spawn(
       'node',
       [resolve(__dirname, script), ...extraArgs, ...(DRY_RUN ? ['--dry-run'] : [])],
-      { stdio: 'inherit', env: process.env },
+      {
+        stdio: 'inherit',
+        env: { ...process.env, RUN_REPORT_DIR, RUN_STEP_SLUG: stepSlug },
+      },
     )
     child.on('close', (code) => {
       const ms = Date.now() - start
       const status = code === 0 ? 'ok' : `exit ${code}`
       console.log(`✓ ${name} → ${status} (${(ms / 1000).toFixed(1)}s)`)
-      resolveStep({ name, code, ms })
+      // Pick up the step's KPI report if it wrote one.
+      let report = null
+      const f = resolve(RUN_REPORT_DIR, `${stepSlug}.json`)
+      if (existsSync(f)) {
+        try { report = JSON.parse(readFileSync(f, 'utf-8')) } catch { /* ignore */ }
+      }
+      resolveStep({ name, code, ms, report })
     })
     child.on('error', (err) => {
       console.error(`✗ ${name} → spawn error:`, err.message)
-      resolveStep({ name, code: 1, ms: Date.now() - start, error: err.message })
+      resolveStep({ name, code: 1, ms: Date.now() - start, error: err.message, report: null })
     })
   })
 }
@@ -114,9 +140,118 @@ async function periodicPhase() {
   return results
 }
 
+// ── Run-report assembly ──────────────────────────────────────────────────────
+
+/** Flatten per-step reports into one run record + aggregate KPIs + error audit. */
+function buildRecord(results, startedAt, finishedAt) {
+  const steps = results.map((r) => ({
+    name: r.name,
+    ok: r.code === 0,
+    ms: r.ms,
+    planned: r.report?.planned ?? null,
+    actual: r.report?.actual ?? null,
+    failed: r.report?.failed ?? 0,
+    kpis: r.report?.kpis ?? {},
+    errors: r.report?.errors ?? [],
+  }))
+  const kpis = {}
+  for (const s of steps) {
+    for (const [k, v] of Object.entries(s.kpis)) {
+      if (typeof v === 'number') kpis[k] = (kpis[k] || 0) + v
+    }
+  }
+  const errors = []
+  for (const s of steps) {
+    if (!s.ok && !(s.errors && s.errors.length)) {
+      errors.push({ step: s.name, label: null, message: 'step exited non-zero' })
+    }
+    for (const e of s.errors || []) {
+      errors.push({ step: s.name, label: e.label || null, message: e.message })
+    }
+  }
+  const stepsOk = steps.filter((s) => s.ok).length
+  return {
+    runId: process.env.GITHUB_RUN_ID || `local-${startedAt}`,
+    runNumber: process.env.GITHUB_RUN_NUMBER ? Number(process.env.GITHUB_RUN_NUMBER) : null,
+    instance: process.env.INSTANCE || 'local',
+    mode: MODE,
+    dryRun: DRY_RUN,
+    startedAt,
+    finishedAt,
+    durationMs: Date.parse(finishedAt) - Date.parse(startedAt),
+    stepsOk,
+    stepsTotal: steps.length,
+    kpis,
+    steps,
+    errors,
+  }
+}
+
+/** GitHub Actions job-summary markdown — rendered on the run page. */
+function renderMarkdown(rec) {
+  const esc = (s) => String(s).replace(/\|/g, '\\|')
+  const L = []
+  L.push(`## 🤖 Automation run — ${rec.mode}${rec.dryRun ? ' (dry-run)' : ''}`)
+  L.push('')
+  L.push(
+    `**${rec.stepsOk}/${rec.stepsTotal} steps ok** · ${(rec.durationMs / 1000).toFixed(1)}s · ` +
+      `instance \`${rec.instance}\` · run \`${rec.runId}\``,
+  )
+  L.push('')
+  const kpiEntries = Object.entries(rec.kpis)
+  if (kpiEntries.length) {
+    L.push('### KPIs')
+    L.push('| Metric | Count |')
+    L.push('|---|--:|')
+    for (const [k, v] of kpiEntries) L.push(`| ${k} | ${v} |`)
+    L.push('')
+  }
+  L.push('### Steps — planned vs actual')
+  L.push('| Step | Result | Planned | Actual | Failed | Time |')
+  L.push('|---|:--:|--:|--:|--:|--:|')
+  for (const s of rec.steps) {
+    L.push(
+      `| ${esc(s.name)} | ${s.ok ? '✅' : '❌'} | ${s.planned ?? '–'} | ${s.actual ?? '–'} | ${s.failed || 0} | ${(s.ms / 1000).toFixed(1)}s |`,
+    )
+  }
+  L.push('')
+  if (rec.errors.length) {
+    L.push('### ⚠️ Error audit log')
+    L.push('| Step | Case | Message |')
+    L.push('|---|---|---|')
+    for (const e of rec.errors.slice(0, 40)) {
+      L.push(`| ${esc(e.step)} | ${esc(e.label || '–')} | ${esc(String(e.message).slice(0, 200))} |`)
+    }
+  } else {
+    L.push('_No errors this run._ ✅')
+  }
+  return L.join('\n')
+}
+
+/** Append the record to the rolling run-history JSON the /runs dashboard reads. */
+function appendHistory(rec) {
+  try {
+    const dir = resolve(repoRoot, 'public')
+    mkdirSync(dir, { recursive: true })
+    const file = resolve(dir, 'run-history.json')
+    let history = []
+    if (existsSync(file)) {
+      try { history = JSON.parse(readFileSync(file, 'utf-8')) } catch { history = [] }
+    }
+    if (!Array.isArray(history)) history = []
+    history.push(rec)
+    if (history.length > MAX_HISTORY) history = history.slice(-MAX_HISTORY)
+    writeFileSync(file, JSON.stringify(history, null, 2), 'utf-8')
+    console.log(`run-history: ${history.length} runs → public/run-history.json`)
+  } catch (e) {
+    console.warn('run-history append failed:', e.message)
+  }
+}
+
 async function main() {
+  const startedAt = new Date().toISOString()
   console.log(`drive-all  mode=${MODE}  dry-run=${DRY_RUN}`)
-  console.log(`now: ${new Date().toISOString()}`)
+  console.log(`now: ${startedAt}`)
 
   const allResults = []
   if (MODE === 'bootstrap' || MODE === 'full') {
@@ -126,19 +261,29 @@ async function main() {
     allResults.push(...(await periodicPhase()))
   }
 
-  console.log(`\n${'═'.repeat(60)}\nSummary\n${'═'.repeat(60)}`)
-  let failed = 0
-  for (const r of allResults) {
-    const tag = r.code === 0 ? '✓' : '✗'
-    console.log(`  ${tag} ${r.name.padEnd(45)} ${(r.ms / 1000).toFixed(1)}s`)
-    if (r.code !== 0) failed++
-  }
-  console.log(`\nresult: ${allResults.length - failed}/${allResults.length} steps ok`)
+  const record = buildRecord(allResults, startedAt, new Date().toISOString())
 
-  // Soft-fail philosophy: if at least one step succeeded, exit 0 so a single
-  // flaky step (e.g. branch async timeout) doesn't fail the whole cron. Tighten
-  // this if you want strict cron failures.
-  process.exit(failed === allResults.length ? 1 : 0)
+  console.log(`\n${'═'.repeat(60)}\nSummary\n${'═'.repeat(60)}`)
+  for (const s of record.steps) {
+    const tag = s.ok ? '✓' : '✗'
+    const pa = s.actual != null ? `  (${s.actual}${s.planned != null ? `/${s.planned}` : ''})` : ''
+    console.log(`  ${tag} ${s.name.padEnd(42)} ${(s.ms / 1000).toFixed(1)}s${pa}`)
+  }
+  console.log(`\nresult: ${record.stepsOk}/${record.stepsTotal} steps ok`)
+
+  // 1) Per-run analytics on the GitHub Actions run page.
+  if (process.env.GITHUB_STEP_SUMMARY) {
+    try {
+      appendFileSync(process.env.GITHUB_STEP_SUMMARY, renderMarkdown(record) + '\n')
+    } catch (e) {
+      console.warn('step summary write failed:', e.message)
+    }
+  }
+  // 2) Rolling history for the /runs dashboard.
+  appendHistory(record)
+
+  // Soft-fail: exit non-zero only if EVERY step failed.
+  process.exit(record.stepsOk === 0 && record.stepsTotal > 0 ? 1 : 0)
 }
 
 main().catch((err) => {

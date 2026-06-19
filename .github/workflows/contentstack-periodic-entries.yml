@@ -103,7 +103,39 @@ jobs:
           CONTENTSTACK_USER_EMAIL: ${{ secrets.CONTENTSTACK_USER_EMAIL }}
           CONTENTSTACK_USER_PASSWORD: ${{ secrets.CONTENTSTACK_USER_PASSWORD }}
           CONTENTSTACK_USER_TOTP_SECRET: ${{ secrets.CONTENTSTACK_USER_TOTP_SECRET }}
+          CONTENTSTACK_STACK_ROLE_NAME: ${{ secrets.CONTENTSTACK_STACK_ROLE_NAME || vars.CONTENTSTACK_STACK_ROLE_NAME }}
+          CONTENTSTACK_CHURN_CASES: ${{ secrets.CONTENTSTACK_CHURN_CASES || vars.CONTENTSTACK_CHURN_CASES }}
+          # Labels the run record in public/run-history.json (the /runs dashboard).
+          INSTANCE: ${{ matrix.instance }}
         run: npm run automate:drive:ci -- --mode ${{ github.event.inputs.mode || 'periodic' }}
+
+      # Persist the run record so the /runs dashboard can aggregate across runs.
+      # Commits public/run-history.json back to the SAME branch. The periodic
+      # workflow is cron-only (not on:push), so this commit never re-triggers it.
+      # Single-instance is race-free; for multiple matrix instances the rebase
+      # retry below resolves the common case (switch to per-instance files if you
+      # run many instances and see conflicts).
+      - name: Commit run history
+        if: always() && github.ref == 'refs/heads/main'
+        run: |
+          set -e
+          if [ -z "$(git status --porcelain public/run-history.json)" ]; then
+            echo "no run-history change"; exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          for attempt in 1 2 3 4 5; do
+            git stash --include-untracked -- public/run-history.json || true
+            git pull --rebase origin "${GITHUB_REF_NAME}" || true
+            git stash pop || true
+            git add public/run-history.json
+            git commit -m "chore(run-data): append run ${GITHUB_RUN_ID} [skip ci]" || { echo "nothing to commit"; exit 0; }
+            if git push origin "HEAD:${GITHUB_REF_NAME}"; then
+              echo "pushed run history (attempt $attempt)"; exit 0
+            fi
+            echo "push raced — retrying ($attempt)"; git reset --soft HEAD~1
+          done
+          echo "::warning::could not push run history after retries (non-fatal)"
 
       - name: Warm Launch per-entry page URLs
         if: success()

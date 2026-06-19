@@ -22,6 +22,7 @@ import {
   resolveEntryPlaceholdersAsync,
   deepClone,
 } from './lib/entry-placeholders.mjs'
+import { writeStepReport } from './lib/report.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -77,6 +78,8 @@ async function main() {
   }
 
   let ran = 0
+  let created = 0
+  let planned = 0
   for (const ct of manifest.contentTypes) {
     const p = ct.periodic
     if (!p || !p.enabled) continue
@@ -98,6 +101,7 @@ async function main() {
       continue
     }
 
+    planned += count
     for (let i = 0; i < count; i += 1) {
       const merged = deepClone(templateSource)
       merged.title = uniqueTitle()
@@ -135,6 +139,7 @@ async function main() {
         process.exit(1)
       }
       registry.record(ct.uid, result.entryUid)
+      created += 1
       console.log(
         'Periodic: created + published',
         result.entryUid,
@@ -151,6 +156,11 @@ async function main() {
   }
 
   console.log('Periodic run complete.')
+  writeStepReport({
+    planned,
+    actual: created,
+    kpis: { created },
+  })
 }
 
 main().catch((e) => {

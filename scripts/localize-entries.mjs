@@ -39,6 +39,7 @@ import {
   sleep,
 } from './lib/cma.mjs'
 import { createProgress, runWithConcurrency } from './lib/progress.mjs'
+import { writeStepReport } from './lib/report.mjs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -213,6 +214,12 @@ async function main() {
   console.log(
     `\n✓ done — ${totalL} localized, ${totalA} already localized, ${totalF} failed`,
   )
+  writeStepReport({
+    planned: totalL + totalF,
+    actual: totalL,
+    failed: totalF,
+    kpis: { localized: totalL, already: totalA, failed: totalF },
+  })
   // Surface real failures (previously hidden as "skipped"): non-zero exit makes
   // drive-all flag this step so the genuine error is visible in the run summary.
   if (totalF > 0) process.exitCode = 1

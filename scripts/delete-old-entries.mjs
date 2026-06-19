@@ -43,6 +43,7 @@ import {
   sleep,
 } from './lib/cma.mjs'
 import { createProgress } from './lib/progress.mjs'
+import { writeStepReport } from './lib/report.mjs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -182,6 +183,11 @@ async function main() {
   }
 
   console.log(`\n✓ done — ${totalDeleted} deleted (scanned ${totalScanned}) across ${contentTypes.length} content type(s)`)
+  writeStepReport({
+    planned: totalScanned,
+    actual: totalDeleted,
+    kpis: { deleted: totalDeleted, scanned: totalScanned },
+  })
 }
 
 main().catch((err) => {

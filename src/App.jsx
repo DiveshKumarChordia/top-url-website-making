@@ -3,6 +3,7 @@ import './App.css'
 import { Layout } from './components/Layout.jsx'
 import EntryPage from './pages/EntryPage.jsx'
 import HomePage from './pages/HomePage.jsx'
+import RunsDashboard from './pages/RunsDashboard.jsx'
 
 export default function App() {
   return (
@@ -10,6 +11,7 @@ export default function App() {
       <Route path="/" element={<Layout />}>
         <Route index element={<HomePage />} />
         <Route path="entry/:contentTypeUid/:entryUid" element={<EntryPage />} />
+        <Route path="runs" element={<RunsDashboard />} />
       </Route>
     </Routes>
   )

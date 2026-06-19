@@ -52,6 +52,7 @@ import {
   optionalEnv,
   sleep,
 } from './lib/cma.mjs'
+import { writeStepReport } from './lib/report.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const DRY_RUN = process.argv.slice(2).includes('--dry-run')
@@ -225,6 +226,15 @@ async function main() {
 
   const failed = results.filter((r) => !r.ok).length
   console.log(`\n✓ churn done — ${results.length - failed}/${results.length} cases ok`)
+  writeStepReport({
+    planned: results.length,
+    actual: results.length - failed,
+    failed,
+    kpis: { casesOk: results.length - failed, casesFailed: failed },
+    errors: results
+      .filter((r) => !r.ok)
+      .map((r) => ({ label: r.name, message: r.note || 'failed' })),
+  })
   // Soft-fail: only non-zero if EVERY case failed (likely an auth/config issue).
   if (results.length > 0 && failed === results.length) process.exitCode = 1
 }
