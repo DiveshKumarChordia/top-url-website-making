@@ -15,7 +15,10 @@ graph TB
         subgraph Scripts["Scripts Layer"]
             DRIVE["drive-all.mjs<br/>(Orchestrator)"]
             LIB["lib/cma.mjs<br/>(Helpers +<br/>Self-healing)"]
-            SCRIPTS["19 Meter-Coverage Scripts<br/>Bootstrap, Periodic, Scenarios"]
+            BOOTSTRAP["Bootstrap (4)<br/>CTs, Locales,<br/>Workflows, Rules"]
+            PERIODIC["Periodic (8)<br/>Delete, Backfill,<br/>Create, Localize,<br/>Publish, Transition"]
+            METER["Meter-Coverage (6)<br/>Edit, Delete, Stall,<br/>No-WF, Multi-Actor,<br/>Orphan"]
+            ADVANCED["Advanced (6)<br/>User Inviter,<br/>Experiments,<br/>Role Manager"]
         end
         
         subgraph Reporting["Reporting Layer"]
@@ -177,6 +180,115 @@ sequenceDiagram
     Note over Stack: Drives entries_orphaned_by_locale_deleted
     
     Script->>Script: Optional: Recreate locale
+```
+
+---
+
+## Entry Placeholder Resolution Flow
+
+```mermaid
+graph TD
+    A["Entry Manifest<br/>title: Entry __TIMESTAMP__<br/>id: __UUID__<br/>score: __RANDOM_INT1,100__"] -->|Parse| B["lib/entry-placeholders.mjs"]
+    
+    B -->|__TIMESTAMP__| C["Current Unix<br/>timestamp"]
+    B -->|__UUID__| D["Random<br/>UUID v4"]
+    B -->|__RANDOM_INT__| E["Random<br/>number"]
+    B -->|__RANDOM_CHOICE__| F["Pick from<br/>list"]
+    B -->|__ENTRY_UID__| G["Current<br/>entry UID"]
+    B -->|__TAX_TERMS__| H["Taxonomy<br/>mapping"]
+    
+    C --> I["Resolved Entry<br/>title: Entry 1718918400<br/>id: a3f8d5c2-4e1b-11ec-81d3<br/>score: 47"]
+    D --> I
+    E --> I
+    F --> I
+    G --> I
+    H --> I
+    
+    I -->|Create| J["CMA API"]
+    J -->|Success| K["Entry created<br/>with resolved<br/>values"]
+```
+
+---
+
+## Frontend Integration Diagram
+
+```mermaid
+graph TB
+    subgraph Frontend["Frontend (Vite + React)"]
+        HOME["HomePage.jsx<br/>Entry list<br/>Digest grouping"]
+        ENTRY["EntryPage.jsx<br/>Single entry<br/>Details view"]
+        DASHBOARD["RunsDashboard.jsx<br/>KPI tracking<br/>Trend charts"]
+        LAYOUT["Layout.jsx<br/>Navigation<br/>State"]
+        
+        HERO["HeroCanvas.jsx<br/>Three.js<br/>3D scene"]
+        DIGEST["DigestItem.jsx<br/>Changelog<br/>Filters"]
+    end
+    
+    subgraph Libraries["Frontend Libraries"]
+        DELIVERY["lib/contentstackDelivery.js<br/>Delivery API client"]
+        FORMAT["lib/entryFormat.js<br/>Field formatting"]
+        EXCERPT["lib/entryExcerpt.js<br/>Excerpt generation"]
+        EVENTS["lib/siteEvents.js<br/>Event tracking"]
+    end
+    
+    subgraph External["External"]
+        DELAPI["Delivery API<br/>Published entries"]
+        RUNHIST["public/run-history.json<br/>Automation KPIs"]
+    end
+    
+    LAYOUT -->|Routes| HOME
+    LAYOUT -->|Routes| ENTRY
+    LAYOUT -->|Routes| DASHBOARD
+    
+    HOME -->|Uses| DELIVERY
+    ENTRY -->|Uses| DELIVERY
+    ENTRY -->|Uses| FORMAT
+    HOME -->|Uses| DIGEST
+    DIGEST -->|Uses| EXCERPT
+    HERO -->|Renders| HOME
+    LAYOUT -->|Uses| EVENTS
+    
+    DELIVERY -->|Fetches| DELAPI
+    DASHBOARD -->|Reads| RUNHIST
+```
+
+---
+
+## Complete Data Flow: From Operation to Event
+
+```mermaid
+graph LR
+    A["CMA Operation<br/>Create Entry"] -->|Executes| B["Contentstack<br/>Management API"]
+    B -->|Triggers| C["Kafka Event<br/>entry_created"]
+    
+    D["Localize Entry"] -->|Executes| B
+    D -->|Triggers| C
+    
+    E["Publish Entry"] -->|Executes| B
+    E -->|Triggers| F["Kafka Event<br/>entry_published"]
+    
+    G["Transition<br/>Workflow"] -->|Executes| B
+    G -->|Triggers| H["Kafka Event<br/>entry_workflow_*"]
+    
+    I["Delete Entry"] -->|Executes| B
+    I -->|Triggers| J["Kafka Event<br/>entry_deleted"]
+    
+    K["Invite User"] -->|Via| L["Org Admin<br/>Portal"]
+    L -->|Triggers| M["Kafka Event<br/>user_created"]
+    
+    C -->|Consumed by| N["Downstream<br/>Analytics Pipeline"]
+    F -->|Consumed by| N
+    H -->|Consumed by| N
+    J -->|Consumed by| N
+    M -->|Consumed by| N
+    
+    style A fill:#e1f5ff
+    style D fill:#e1f5ff
+    style E fill:#fff3e0
+    style G fill:#f3e5f5
+    style I fill:#ffebee
+    style K fill:#e8f5e9
+    style N fill:#f5f5f5
 ```
 
 ---

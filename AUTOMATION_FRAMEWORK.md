@@ -17,6 +17,73 @@ This framework automates complex content lifecycle patterns in Contentstack to:
 
 ## Architecture
 
+### Complete Automation Flow (All 24+ Scripts)
+
+```mermaid
+graph TD
+    A["CI/Manual Trigger"] -->|--mode bootstrap| B["BOOTSTRAP PHASE"]
+    A -->|--mode periodic| C["PERIODIC PHASE"]
+    A -->|--mode full| D["BOOTSTRAP + PERIODIC"]
+    
+    D --> B
+    D --> C
+    
+    B --> B1["bootstrap-from-manifest.mjs<br/>Create CTs"]
+    B --> B2["seed-locales-branches.mjs<br/>Create locales + branches"]
+    B --> B3["seed-workflows.mjs<br/>Create workflows"]
+    B --> B4["seed-publishing-rules.mjs<br/>Create rules"]
+    
+    B1 --> E["Foundation Ready"]
+    B2 --> E
+    B3 --> E
+    B4 --> E
+    
+    C --> C1["delete-old-entries.mjs<br/>Tiered retention"]
+    C --> C2["backfill-aged-entries.mjs<br/>Restore from trash"]
+    C --> C3["periodic-entries-from-manifest.mjs<br/>Create 10k entries"]
+    C --> C4["localize-entries.mjs<br/>5 locales"]
+    C --> C5["bulk-publish-cycle.mjs<br/>Publish/unpublish"]
+    C --> C6["seed-workflows.mjs<br/>5 transition patterns"]
+    C --> C7["churn-orphans.mjs<br/>Edge cases"]
+    C --> C8["branch-lifecycle.mjs<br/>30-branch lineage"]
+    
+    C1 --> M["Meter-Coverage<br/>Scenarios (6x)"]
+    C2 --> M
+    C3 --> M
+    C4 --> M
+    C5 --> M
+    C6 --> M
+    C7 --> M
+    C8 --> M
+    
+    M --> M1["edit-after-publish.mjs<br/>entries_in_progress"]
+    M --> M2["permanent-deletes.mjs<br/>entries_deleted"]
+    M --> M3["aged-stalls.mjs<br/>stalled_by_stage"]
+    M --> M4["no-workflow-ct.mjs<br/>entries_without_workflow"]
+    M --> M5["multi-actor-create-publish.mjs<br/>entries_published.user_uid"]
+    M --> M6["branch-locale-deletion.mjs<br/>snapshot orphan"]
+    
+    M1 --> U["User Management"]
+    M2 --> U
+    M3 --> U
+    M4 --> U
+    M5 --> U
+    M6 --> U
+    
+    U --> U1["invite-users.mjs<br/>Invite 10 users<br/>+ assign roles"]
+    
+    U1 --> R["Reporting & KPIs"]
+    
+    R --> R1["lib/report.mjs<br/>Aggregate KPIs"]
+    R1 --> R2["public/run-history.json<br/>Append run data"]
+    R2 --> R3["RunsDashboard.jsx<br/>Visualize trends"]
+    
+    style E fill:#c8e6c9
+    style M fill:#fff9c4
+    style U fill:#bbdefb
+    style R fill:#f8bbd0
+```
+
 ### High-Level Flow
 
 ```mermaid
