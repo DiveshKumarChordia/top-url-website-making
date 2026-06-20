@@ -10,12 +10,21 @@
     "finishedAt": "2026-06-20T15:16:26.377Z",
     "durationMs": 17296,
 =======
+<<<<<<< Updated upstream
     "instance": "top-url-dev22-sso",
     "mode": "periodic",
     "dryRun": false,
     "startedAt": "2026-06-20T15:16:08.050Z",
     "finishedAt": "2026-06-20T15:16:28.840Z",
     "durationMs": 20790,
+=======
+    "instance": "top-url",
+    "mode": "periodic",
+    "dryRun": false,
+    "startedAt": "2026-06-20T15:16:06.812Z",
+    "finishedAt": "2026-06-20T15:16:29.345Z",
+    "durationMs": 22533,
+>>>>>>> Stashed changes
 >>>>>>> Stashed changes
     "stepsOk": 7,
     "stepsTotal": 8,
@@ -36,8 +45,13 @@
       "created": 100,
       "failed": 0,
       "capHit": 0,
+<<<<<<< Updated upstream
       "localized": 150,
       "already": 0,
+=======
+      "localized": 71,
+      "already": 79,
+>>>>>>> Stashed changes
       "localizeFailed": 100,
 >>>>>>> Stashed changes
       "localeTargets": 5,
@@ -68,7 +82,11 @@
 <<<<<<< Updated upstream
         "ms": 1665,
 =======
+<<<<<<< Updated upstream
         "ms": 1454,
+=======
+        "ms": 1948,
+>>>>>>> Stashed changes
 >>>>>>> Stashed changes
         "planned": null,
         "actual": null,
@@ -82,7 +100,11 @@
 <<<<<<< Updated upstream
         "ms": 2012,
 =======
+<<<<<<< Updated upstream
         "ms": 1187,
+=======
+        "ms": 2051,
+>>>>>>> Stashed changes
 >>>>>>> Stashed changes
         "planned": 0,
         "actual": 0,
@@ -108,7 +130,11 @@
           "created": 10,
           "failed": 90,
 =======
+<<<<<<< Updated upstream
         "ms": 2550,
+=======
+        "ms": 3154,
+>>>>>>> Stashed changes
         "planned": 100,
         "actual": 100,
         "failed": 0,
@@ -133,6 +159,7 @@
           "already": 0,
           "localizeFailed": 230,
 =======
+<<<<<<< Updated upstream
         "ms": 7839,
         "planned": 250,
         "actual": 150,
@@ -140,6 +167,15 @@
         "kpis": {
           "localized": 150,
           "already": 0,
+=======
+        "ms": 7753,
+        "planned": 171,
+        "actual": 71,
+        "failed": 100,
+        "kpis": {
+          "localized": 71,
+          "already": 79,
+>>>>>>> Stashed changes
           "localizeFailed": 100,
 >>>>>>> Stashed changes
           "localeTargets": 5
@@ -152,7 +188,11 @@
 <<<<<<< Updated upstream
         "ms": 2774,
 =======
+<<<<<<< Updated upstream
         "ms": 2513,
+=======
+        "ms": 2909,
+>>>>>>> Stashed changes
 >>>>>>> Stashed changes
         "planned": 0,
         "actual": 0,
@@ -172,7 +212,11 @@
 <<<<<<< Updated upstream
         "ms": 393,
 =======
+<<<<<<< Updated upstream
         "ms": 2013,
+=======
+        "ms": 560,
+>>>>>>> Stashed changes
 >>>>>>> Stashed changes
         "planned": null,
         "actual": null,
@@ -186,7 +230,11 @@
 <<<<<<< Updated upstream
         "ms": 3408,
 =======
+<<<<<<< Updated upstream
         "ms": 2900,
+=======
+        "ms": 3694,
+>>>>>>> Stashed changes
 >>>>>>> Stashed changes
         "planned": 6,
         "actual": 1,
@@ -226,7 +274,11 @@
 <<<<<<< Updated upstream
             "message": "demo_plain_text/blt8a0ef0b95527439a (delete 200, restore 422)"
 =======
+<<<<<<< Updated upstream
             "message": "demo_plain_text/blt653c8228cca32152 (delete 200, restore 422)"
+=======
+            "message": "demo_plain_text/blt8cc63982d3440474 (delete 200, restore 422)"
+>>>>>>> Stashed changes
 >>>>>>> Stashed changes
           }
         ]
@@ -237,7 +289,11 @@
 <<<<<<< Updated upstream
         "ms": 340,
 =======
+<<<<<<< Updated upstream
         "ms": 328,
+=======
+        "ms": 459,
+>>>>>>> Stashed changes
 >>>>>>> Stashed changes
         "planned": 3,
         "actual": 0,
@@ -296,7 +352,11 @@
 <<<<<<< Updated upstream
         "message": "demo_plain_text/blt8a0ef0b95527439a (delete 200, restore 422)"
 =======
+<<<<<<< Updated upstream
         "message": "demo_plain_text/blt653c8228cca32152 (delete 200, restore 422)"
+=======
+        "message": "demo_plain_text/blt8cc63982d3440474 (delete 200, restore 422)"
+>>>>>>> Stashed changes
 >>>>>>> Stashed changes
       }
     ]
