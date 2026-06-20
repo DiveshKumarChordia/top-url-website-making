@@ -32,6 +32,9 @@
     "org:remove": "node --env-file=.env scripts/manage-org-permissions.mjs remove",
     "org:invite": "node --env-file=.env scripts/manage-org-permissions.mjs invite",
     "org:check-role": "node --env-file=.env scripts/manage-org-permissions.mjs check-role",
+    "automate:random-users": "node --env-file=.env scripts/automate-with-random-users.mjs",
+    "automate:random-users:5": "node --env-file=.env scripts/automate-with-random-users.mjs --users 5 --operations 25",
+    "automate:random-users:10": "node --env-file=.env scripts/automate-with-random-users.mjs --users 10 --operations 50",
     "warm:launch-urls": "node scripts/warm-launch-urls.mjs"
   },
   "dependencies": {
