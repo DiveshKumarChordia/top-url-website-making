@@ -1943,24 +1943,124 @@ KPIs appended to `public/run-history.json` after each run:
 - Batch creation with configurable concurrency (default 12)
 - Graceful handling of org entry cap (133 error)
 - Progress tracking per content type
+- Worker pool manages parallel requests without rate-limit cascade
 
 ### Tiered Retention Algorithm
 
 - 3 age bands: >30d (keep 5k), 15-30d (keep 10k), 7-15d (keep 20k)
 - Delete oldest excess per band
 - Bounded growth while maintaining aged dataset
+- Oldest-first deletion preserves time-series integrity
 
 ### Backfill from Trash
 
 - Restore trashed entries if band falls below target
 - Preserve original created_at timestamp
 - Maintain "aged" status for analytics
+- Graceful skip if no trashed entries available
 
 ### Workflow Transitions with 5 Patterns
 
-- Linear, Skip, Rework, PartialStall, FirstOnly
+- Linear [0→1→2], Skip [0→2], Rework [0→1→0→1→2], PartialStall [0→1], FirstOnly [0]
 - Weighted distribution (30%, 10%, 20%, 20%, 20%)
-- Per-stage error handling
+- Per-stage error handling and recovery
+
+### Multi-User Round-Robin Simulation
+
+- Token rotation across configurable users (`CONTENTSTACK_MANAGEMENT_TOKENS`)
+- Each request carries distinct `user_uid` in meter events
+- Drives `entries_published.user_uid` dimension across operations
+
+### Role-Based User Simulation (Test Roles Only)
+
+- 5 test simulation roles: Owner (all ops), Admin (most ops), Editor (content ops), Contributor (create/edit), Viewer (read-only)
+- Permission evaluation: check operation against role capability
+- Multi-user collaborative workflows: Editor→Admin→Owner chains for approval flows
+- NOT linked to real Contentstack CMS roles (separate stack-level RBAC)
+
+### Smart Randomization Strategies
+
+- **Pure Random**: Any operation with equal probability
+- **Weighted**: Operations by realistic frequency distribution
+- **Balanced**: Equal coverage across all operations per user
+- **Admin-Heavy**: 40% of operations by admins, 20% each for editors/contributors
+- **Viewer-Heavy**: Most read-only, 10% mutation
+- **Operation-Specific**: Custom weights per operation type
+
+### KPI Extraction Algorithm (AnalyticsEngine)
+
+- Parse audit trail (timestamp, user, role, operation, success/fail)
+- Extract 50+ metrics across 5 dimensions:
+  - **Role-Based**: success_rate_by_role, operations_per_role, coverage, violations
+  - **Operation-Based**: success_per_op, sequences, user_distribution, errors
+  - **User-Based**: reliability_ranking, specialization, workload, throughput
+  - **Multi-User**: completion_rates, step_success, collaboration_patterns
+  - **Stack-Level**: all_time_totals, trends, health_score, MTBF, streaks
+
+### 4-Phase Analytics Pipeline
+
+**Phase 1 - Extract**: AnalyticsEngine processes audit trail → 50+ raw KPIs  
+**Phase 2 - Normalize**: KPI Schema applies 30+ standard fields, fills defaults, validates types  
+**Phase 3 - Aggregate**: AggregateMetrics computes stack-level insights (trends, health, reliability)  
+**Phase 4 - Visualize**: Dashboard renders 5 tabs with 50+ KPIs, calendar heatmap, day analytics
+
+### Calendar Heatmap Generation
+
+- Map runs to calendar grid (rows=weeks, cols=days)
+- Color intensity: white (no runs) → light blue → dark blue → green (all successful)
+- Per-day aggregation: count runs, sum success_rate, compute percentile
+- Interactive selection: click day → populate DayAnalytics
+
+### Day Analytics Computation
+
+- Filter runs by selected day
+- Compute 6 metric cards: run_count, success_rate, all_green_count, avg_duration, entries_created, errors
+- Generate success_trend chart (bar chart per run)
+- Build operations_summary (operation counts for day)
+- Render individual runs table
+
+### Gmail Plus Addressing
+
+- Pattern: `base+suffix@domain.com` routes all to `base@domain.com`
+- Suffix encodes: timestamp, run ID, operations assigned, test role, availability
+- Unlimited unique users from single Gmail inbox
+- Human-readable dates in suffix: `run-2025-dec-08-0230pm-ops-create-publish-role-admin`
+
+### TOTP Code Generation
+
+- HMAC-SHA1(secret, time_step) with 30-second windows
+- 6-digit output: modulo 10^6 of HMAC result
+- Google Authenticator compatible
+- Graceful expiry: ~30 seconds per code
+
+### Entry Placeholder Expansion
+
+- Parse manifest entry fields for: `__TIMESTAMP__`, `__UUID__`, `__RANDOM_INT(min,max)__`, `__RANDOM_CHOICE(a,b,c)__`, `__ENTRY_UID__`, `__TAX_TERMS_*__`
+- Expand each placeholder to resolved value
+- Build final entry with resolved fields
+- Trigger appropriate create/update events
+
+### Self-Healing Retry Logic
+
+- **Missing Locale**: Auto-create with fallback chain, retry operation
+- **Missing Workflow**: Auto-create with default stages, retry operation
+- **User Missing Role**: Auto-assign via shareStack, retry operation
+- **Exponential Backoff**: 50ms → 100ms → 200ms on 429 rate limit
+- **Graceful Skip**: If auto-creation fails, skip scenario and continue
+
+### Concurrent Worker Pool Management
+
+- Default pool size: 12 workers (configurable per operation type)
+- Queue management: pending → in-progress → complete
+- Rate limit tracking: sleep 50ms between requests if approaching Contentstack CMA rate limit (10 req/sec)
+- Progress updates: real-time console output with [N/M] completion
+
+### Error Handling & Recovery
+
+- Categorize errors: rate-limit (429), auth (401/403), not-found (404), permission (422), timeout (500)
+- Retry policy: immediate for auth errors, backoff for rate limits, skip for not-found
+- Audit trail captures: error message, error code, operation context
+- Analytics surfaces: top_error_messages, error_trend, error_recovery_rate
 
 ---
 
@@ -1976,6 +2076,10 @@ KPIs appended to `public/run-history.json` after each run:
 │   ├── components/
 │   │   ├── DigestItem.jsx        # Changelog
 │   │   ├── HeroCanvas.jsx        # Three.js
+│   │   ├── CalendarHeatmap.jsx   # ⭐ Calendar visualization
+│   │   ├── DayAnalytics.jsx      # ⭐ Per-day breakdown
+│   │   ├── AdvancedAnalyticsDashboard.jsx # ⭐ 5-tab dashboard (50+ KPIs)
+│   │   ├── AdvancedAnalyticsDashboard.css # ⭐ Dashboard styling
 │   │   └── Layout.jsx            # App shell
 │   ├── lib/
 │   │   ├── contentstackDelivery.js   # Delivery API
@@ -1984,7 +2088,7 @@ KPIs appended to `public/run-history.json` after each run:
 │   │   └── siteEvents.js             # Events
 │   └── App.jsx, main.jsx
 │
-├── scripts/                       # Automation (24+ scripts)
+├── scripts/                       # Automation (29 scripts)
 │   ├── drive-all.mjs              # Orchestrator
 │   ├── bootstrap-*.mjs (4)         # Bootstrap phase
 │   ├── delete-old-entries.mjs
@@ -2013,7 +2117,19 @@ KPIs appended to `public/run-history.json` after each run:
 │   │   ├── schema-from-fields.mjs    # Schema generation
 │   │   ├── workflow-patterns.mjs     # Transition patterns
 │   │   ├── progress.mjs          # Progress tracking
-│   │   └── report.mjs            # KPI reporting
+│   │   ├── report.mjs            # KPI reporting
+│   │   ├── logger.mjs            # ⭐ Structured logging
+│   │   ├── gmail-utils.mjs       # ⭐ Gmail plus addressing
+│   │   ├── user-factory.mjs      # User creation (random)
+│   │   ├── user-factory-v2.mjs   # ⭐ User creation (assigned ops)
+│   │   ├── role-based-factory.mjs # ⭐ Role-based user creation
+│   │   ├── user-assignment.mjs   # ⭐ Operation assignment tracking
+│   │   ├── role-based-users.mjs  # ⭐ Role definitions & multi-user ops
+│   │   ├── operation-randomizer.mjs # ⭐ Smart randomization strategies
+│   │   ├── analytics-engine.mjs  # ⭐ Extract 50+ KPIs from audit trail
+│   │   ├── kpi-schema.mjs        # ⭐ 30+ standard KPI fields
+│   │   ├── aggregate-metrics.mjs # ⭐ Stack-level metrics (trends, health, MTBF)
+│   │   └── enhanced-report.mjs   # ⭐ Wire analytics engine + persist audit trail
 │   └── manifests/                # Config files
 │       ├── content-types.manifest.json
 │       ├── workflows.manifest.json
@@ -2062,7 +2178,7 @@ jq '.[-5:]' public/run-history.json
 ## Status
 
 ✅ **Production-ready** — Runs continuously in CI every 5 minutes  
-✅ **24+ automation scripts** — Full lifecycle coverage  
+✅ **29 automation scripts** — Full lifecycle coverage (orchestrator, bootstrap, periodic, meter-coverage, multi-user, utilities)  
 ✅ **Multi-user simulation** — Test distinct user dimensions  
 ✅ **TOTP/2FA support** — Secure auth for restricted accounts  
 ✅ **Locale experiments** — Destructive testing framework  
