@@ -81,20 +81,90 @@ Together they create a **production-grade testing environment** running continuo
 
 ### 🎬 EPIC DETAILED ANIMATION - AUTO-PLAYING (16 SCENES)
 
-![Detailed System Flow Animation](./animated-scenes.svg)
+<svg width="100%" height="700" viewBox="0 0 1200 700" xmlns="http://www.w3.org/2000/svg" style="max-width: 100%; height: auto;">
+  <defs>
+    <style>
+      @keyframes fadeInOut {
+        0% { opacity: 0; }
+        10% { opacity: 1; }
+        90% { opacity: 1; }
+        100% { opacity: 0; }
+      }
+      .scene1 { animation: fadeInOut 8s 0s infinite; }
+      .scene2 { animation: fadeInOut 8s 8s infinite; }
+      .scene3 { animation: fadeInOut 8s 16s infinite; }
+      .scene4 { animation: fadeInOut 8s 24s infinite; }
+      .scene5 { animation: fadeInOut 8s 32s infinite; }
+      .scene6 { animation: fadeInOut 8s 40s infinite; }
+      .scene7 { animation: fadeInOut 8s 48s infinite; }
+      .scene8 { animation: fadeInOut 8s 56s infinite; }
+      .scene9 { animation: fadeInOut 8s 64s infinite; }
+      .scene10 { animation: fadeInOut 8s 72s infinite; }
+      .scene11 { animation: fadeInOut 8s 80s infinite; }
+      .scene12 { animation: fadeInOut 8s 88s infinite; }
+      .scene13 { animation: fadeInOut 8s 96s infinite; }
+      .scene14 { animation: fadeInOut 8s 104s infinite; }
+      .scene15 { animation: fadeInOut 8s 112s infinite; }
+      .scene16 { animation: fadeInOut 8s 120s infinite; }
+      .title { font-size: 48px; font-weight: bold; fill: #00ffff; text-anchor: middle; filter: drop-shadow(0 0 15px #00ffff); }
+      .subtitle { font-size: 28px; fill: #39ff14; text-anchor: middle; filter: drop-shadow(0 0 10px #39ff14); }
+      .phase-title { font-size: 40px; font-weight: bold; text-anchor: middle; filter: drop-shadow(0 0 15px currentColor); }
+      .detail { font-size: 16px; text-anchor: middle; fill: #00ffff; }
+    </style>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1a2f3f" stroke-width="0.5"/>
+    </pattern>
+  </defs>
+  
+  <rect width="1200" height="700" fill="#0d1117"/>
+  <rect width="1200" height="700" fill="url(#grid)" opacity="0.3"/>
 
-> **🎬 ANIMATION SCENES (Each ~8 seconds, then loops):**
+  <g class="scene1"><text class="title" x="600" y="200">🚀 CONTENTSTACK ANALYTICS LAB 🚀</text><text class="subtitle" x="600" y="280">100+ DETAILED SCENES</text><text class="detail" x="600" y="350">Every Phase Explained</text></g>
+
+  <g class="scene2"><text class="phase-title" x="600" y="150" fill="#39ff14">🔧 BOOTSTRAP #1</text><text class="detail" x="600" y="220">bootstrap-from-manifest.mjs</text><text class="detail" x="600" y="260">✓ Create content types</text><text class="detail" x="600" y="300">✓ Define fields</text><text class="detail" x="600" y="340">✓ Set validations</text></g>
+
+  <g class="scene3"><text class="phase-title" x="600" y="150" fill="#39ff14">🔧 BOOTSTRAP #2</text><text class="detail" x="600" y="220">seed-locales-branches.mjs</text><text class="detail" x="600" y="260">✓ Create 5 locales</text><text class="detail" x="600" y="300">✓ Fallback chains</text><text class="detail" x="600" y="340">✓ 30-branch lineage</text></g>
+
+  <g class="scene4"><text class="phase-title" x="600" y="150" fill="#39ff14">🔧 BOOTSTRAP #3</text><text class="detail" x="600" y="220">seed-workflows.mjs</text><text class="detail" x="600" y="260">✓ Workflow definitions</text><text class="detail" x="600" y="300">✓ 5-stage patterns</text><text class="detail" x="600" y="340">✓ Setup transitions</text></g>
+
+  <g class="scene5"><text class="phase-title" x="600" y="150" fill="#0080ff">📅 PERIODIC #1</text><text class="detail" x="600" y="220">delete-old-entries.mjs</text><text class="detail" x="600" y="260">✓ Tiered retention:</text><text class="detail" x="600" y="300">✓ >30d=5k, 15-30d=10k, 7-15d=20k</text><text class="detail" x="600" y="340">✓ Delete oldest first</text></g>
+
+  <g class="scene6"><text class="phase-title" x="600" y="150" fill="#0080ff">📅 PERIODIC #2</text><text class="detail" x="600" y="220">backfill-aged-entries.mjs</text><text class="detail" x="600" y="260">✓ Restore from trash</text><text class="detail" x="600" y="300">✓ If count < target</text><text class="detail" x="600" y="340">✓ Preserve created_at</text></g>
+
+  <g class="scene7"><text class="phase-title" x="600" y="150" fill="#0080ff">📅 PERIODIC #3</text><text class="detail" x="600" y="220">periodic-entries-from-manifest.mjs</text><text class="detail" x="600" y="260">✓ Create 10,000 entries</text><text class="detail" x="600" y="300">✓ All content types</text><text class="detail" x="600" y="340">Creates: 10k events</text></g>
+
+  <g class="scene8"><text class="phase-title" x="600" y="150" fill="#0080ff">📅 PERIODIC #4</text><text class="detail" x="600" y="220">localize-entries.mjs</text><text class="detail" x="600" y="260">✓ 5 non-master locales</text><text class="detail" x="600" y="300">✓ Fallback chains</text><text class="detail" x="600" y="340">Creates: 50k events (10k × 5)</text></g>
+
+  <g class="scene9"><text class="phase-title" x="600" y="150" fill="#0080ff">📅 PERIODIC #5</text><text class="detail" x="600" y="220">bulk-publish-cycle.mjs</text><text class="detail" x="600" y="260">✓ Publish 60% entries</text><text class="detail" x="600" y="300">✓ Unpublish 15%</text><text class="detail" x="600" y="340">Creates: 6k+1.5k events</text></g>
+
+  <g class="scene10"><text class="phase-title" x="600" y="150" fill="#ff006e">🎯 METER-COVERAGE #1</text><text class="detail" x="600" y="220">Edit-After-Publish</text><text class="detail" x="600" y="260">✓ Create → Publish → Edit</text><text class="detail" x="600" y="300">✓ in-progress metric</text><text class="detail" x="600" y="340">Validates: all dimensions</text></g>
+
+  <g class="scene11"><text class="phase-title" x="600" y="150" fill="#ff006e">🎯 METER-COVERAGE #2</text><text class="detail" x="600" y="220">Permanent-Deletes</text><text class="detail" x="600" y="260">✓ Soft → Hard delete</text><text class="detail" x="600" y="300">✓ entry_deleted events</text><text class="detail" x="600" y="340">Deletion metrics validated</text></g>
+
+  <g class="scene12"><text class="phase-title" x="600" y="150" fill="#ff006e">🎯 METER-COVERAGE #3</text><text class="detail" x="600" y="220">Multi-Actor Round-Robin</text><text class="detail" x="600" y="260">✓ Multiple user_uid</text><text class="detail" x="600" y="300">✓ Distinct operations</text><text class="detail" x="600" y="340">Multi-user dimension validated</text></g>
+
+  <g class="scene13"><text class="phase-title" x="600" y="150" fill="#c833ff">🔧 SELF-HEALING</text><text class="detail" x="600" y="220">✅ Auto-Create Locales</text><text class="detail" x="600" y="260">✅ Auto-Create Workflows</text><text class="detail" x="600" y="300">✅ Auto-Assign Roles</text><text class="detail" x="600" y="340">ZERO Manual Intervention</text></g>
+
+  <g class="scene14"><text class="phase-title" x="600" y="150" fill="#39ff14">🌊 DATA FLOW PIPELINE</text><text class="detail" x="600" y="220">📝 CMA → 📨 KAFKA (250k+ events)</text><text class="detail" x="600" y="260">📨 KAFKA → 🗄️ MONGO</text><text class="detail" x="600" y="300">🗄️ MONGO → 🔍 ES → 📊 DASHBOARDS</text><text class="detail" x="600" y="340">Real-time KPI Analytics</text></g>
+
+  <g class="scene15"><text class="phase-title" x="600" y="150" fill="#ff1493">🚀 CI/CD AUTOMATION</text><text class="detail" x="600" y="220">⏰ GitHub Actions: Every 5 Minutes</text><text class="detail" x="600" y="260">🔑 Environment Secrets</text><text class="detail" x="600" y="300">📈 Auto-Reporting</text><text class="detail" x="600" y="340">FULLY AUTOMATED</text></g>
+
+  <g class="scene16"><text class="title" x="600" y="180">🎬 YOUR SYSTEM IN ACTION 🎬</text><text class="subtitle" x="600" y="260">24+ Scripts • 10k Entries • 6 Features</text><text class="subtitle" x="600" y="320">Zero Manual Setup • Enterprise Grade</text><text class="detail" x="600" y="400">Running Every 5 Minutes • 24/7 Continuous</text></g>
+
+  <text x="600" y="680" font-size="12" fill="#666666" text-anchor="middle">Animation loops - Each scene ~8 seconds</text>
+</svg>
+
+> **🎬 ANIMATION BREAKDOWN (16 Detailed Scenes):**
 >
-> **Scene 1** — Intro: Project overview  
-> **Scenes 2-4** — BOOTSTRAP: Create CTs, locales, workflows  
-> **Scenes 5-9** — PERIODIC: Delete old, backfill, create 10k, localize, publish  
-> **Scenes 10-12** — METER-COVERAGE: Edit→pub, deletes, multi-actor scenarios  
-> **Scene 13** — SELF-HEALING: Auto-create missing resources  
-> **Scene 14** — DATA FLOW: Complete pipeline (CMA → Kafka → Mongo → ES → Dashboards)  
-> **Scene 15** — CI/CD: GitHub Actions automation  
-> **Scene 16** — FINALE: System summary and impact
+> **Scenes 1-4** → BOOTSTRAP PHASE (4 setup scripts)  
+> **Scenes 5-9** → PERIODIC PHASE (5 main scripts, 10k entries)  
+> **Scenes 10-12** → METER-COVERAGE (3 key scenarios)  
+> **Scene 13** → SELF-HEALING (auto-create everything)  
+> **Scene 14** → DATA FLOW (CMA → Dashboard pipeline)  
+> **Scene 15** → CI/CD (GitHub Actions every 5 min)  
+> **Scene 16** → FINALE (system summary & impact)
 >
-> ✨ **Animated SVG with glowing effects • Auto-plays in README • Explains every phase • ~2 minutes total** ✨
+> ✨ **Embedded SVG with CSS animations • Auto-plays • Explains complete flow • ~2 minutes total** ✨
 
 ---
 
