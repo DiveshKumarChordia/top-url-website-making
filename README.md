@@ -2,7 +2,7 @@
 
 **Comprehensive full-stack platform for testing Contentstack's content delivery, analytics metering, lifecycle automation, multi-user simulation, and advanced meter coverage testing.**
 
-> This is a full-stack testing laboratory for Contentstack that covers the ENTIRE content lifecycle: from creation through metering to analytics validation. It includes frontend app (Vite + React), performance testing (URL warming/hitting), automation framework (24+ scripts), multi-user simulation, TOTP/2FA auth, entry templating, locale experiments, and all meter dimensions.
+> This is a full-stack testing laboratory for Contentstack that covers the ENTIRE content lifecycle: from creation through metering to analytics validation. It includes frontend app (Vite + React), performance testing (URL warming/hitting), automation framework (29 scripts), multi-user simulation, TOTP/2FA auth, entry templating, locale experiments, and all meter dimensions.
 
 ---
 
@@ -18,7 +18,7 @@
 8. [Automation Framework](#automation-framework)
 9. [Advanced Features](#advanced-features)
 10. [⭐ 4-Phase Analytics Overhaul](#-4-phase-analytics-overhaul)
-11. [All 24+ Scripts Reference](#all-24-scripts-reference)
+11. [All 29 Scripts Reference](#all-29-scripts-reference)
 12. [Configuration Reference](#configuration-reference)
 13. [All npm Commands](#all-npm-commands)
 14. [Libraries & Utilities](#libraries--utilities)
@@ -68,7 +68,7 @@ Three integrated components:
 
 1. **Frontend App** — Vite + React displaying published entries from Delivery API with digest/changelog UI and 3D hero
 2. **Performance Testing** — Cache warming, URL hitting, concurrent Delivery API testing
-3. **Automation Framework** — CMA lifecycle automation driving ALL meter dimensions with 24+ scripts, multi-user simulation, locale experiments, TOTP/2FA support, entry templating, and self-healing
+3. **Automation Framework** — CMA lifecycle automation driving ALL meter dimensions with 29 scripts, multi-user simulation, locale experiments, TOTP/2FA support, entry templating, and self-healing
 
 Together they create a **production-grade testing environment** running continuously (every 5 minutes in CI) to generate comprehensive meter events for analytics validation.
 
@@ -150,7 +150,7 @@ Together they create a **production-grade testing environment** running continuo
 
   <g class="scene15"><text class="phase-title" x="600" y="150" fill="#ff1493">🚀 CI/CD AUTOMATION</text><text class="detail" x="600" y="220">⏰ GitHub Actions: Every 5 Minutes</text><text class="detail" x="600" y="260">🔑 Environment Secrets</text><text class="detail" x="600" y="300">📈 Auto-Reporting</text><text class="detail" x="600" y="340">FULLY AUTOMATED</text></g>
 
-  <g class="scene16"><text class="title" x="600" y="180">🎬 YOUR SYSTEM IN ACTION 🎬</text><text class="subtitle" x="600" y="260">24+ Scripts • 10k Entries • 6 Features</text><text class="subtitle" x="600" y="320">Zero Manual Setup • Enterprise Grade</text><text class="detail" x="600" y="400">Running Every 5 Minutes • 24/7 Continuous</text></g>
+  <g class="scene16"><text class="title" x="600" y="180">🎬 YOUR SYSTEM IN ACTION 🎬</text><text class="subtitle" x="600" y="260">29 Scripts • 10k Entries • 8+ Features</text><text class="subtitle" x="600" y="320">Zero Manual Setup • Enterprise Grade</text><text class="detail" x="600" y="400">Running Every 5 Minutes • 24/7 Continuous</text></g>
 
   <text x="600" y="680" font-size="12" fill="#666666" text-anchor="middle">Animation loops - Each scene ~8 seconds</text>
 </svg>
@@ -313,7 +313,7 @@ Together they create a **production-grade testing environment** running continuo
   
   <!-- Summary at bottom -->
   <text x="600" y="430" font-size="14" font-weight="bold" fill="#00ffff" text-anchor="middle">🚀 Continuous Meter Event Generation Pipeline</text>
-  <text x="600" y="460" font-size="12" fill="#39ff14" text-anchor="middle">✨ 24+ Scripts | 10k+ Entries/run | Complete Meter Coverage | Multi-User Ready | Zero Manual Setup</text>
+  <text x="600" y="460" font-size="12" fill="#39ff14" text-anchor="middle">✨ 29 Scripts | 10k+ Entries/run | Complete Meter Coverage | Multi-User Ready | Zero Manual Setup</text>
 </svg>
 
 </div>
@@ -325,7 +325,7 @@ Together they create a **production-grade testing environment** running continuo
 ```mermaid
 %%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor':'#1a1a2e', 'primaryTextColor':'#00d4ff', 'primaryBorderColor':'#00ffff', 'lineColor':'#ff006e', 'secondBkgColor':'#16213e', 'tertiaryColor':'#0f3460'}}}%%
 graph TB
-    ROOT["🚀<br/>CONTENTSTACK<br/>ANALYTICS LAB<br/>Full-Stack Testing<br/>24+ Scripts"]
+    ROOT["🚀<br/>CONTENTSTACK<br/>ANALYTICS LAB<br/>Full-Stack Testing<br/>29 Scripts"]
     
     subgraph FRONTEND["🎨 FRONTEND<br/>Content Delivery"]
         subgraph FE_PAGES["📄 Pages"]
@@ -364,7 +364,7 @@ graph TB
         end
     end
     
-    subgraph AUTO["🤖 AUTOMATION<br/>24+ Scripts"]
+    subgraph AUTO["🤖 AUTOMATION<br/>29 Scripts"]
         subgraph AUTO_ORCH["🎯 Orchestrator"]
             AUTO_ORCH_SCRIPT["drive-all.mjs"]
         end
@@ -828,7 +828,7 @@ jq '.[-5:]' public/run-history.json
 **Key Files:**
 - `scripts/drive-all.mjs` — Orchestrator (bootstrap/periodic/full modes)
 - `scripts/lib/cma.mjs` — CMA helpers + self-healing logic
-- `scripts/` — 24+ specialized scripts (see All Scripts Reference)
+- `scripts/` — 29 specialized scripts (see All Scripts Reference)
 
 ---
 
@@ -928,7 +928,7 @@ graph TB
             PERF["Performance Testing<br/>(URL Hitting)"]
         end
         
-        subgraph AutoMation["Automation Framework<br/>(24+ Scripts)"]
+        subgraph AutoMation["Automation Framework<br/>(29 Scripts)"]
             subgraph Bootstrap["Bootstrap Phase (1x setup)"]
                 BS1["bootstrap-from-manifest"]
                 BS2["seed-locales-branches"]
@@ -1412,7 +1412,7 @@ npm run warm:launch-urls
 
 ## Automation Framework
 
-### All 24+ Scripts
+### All 29 Scripts
 
 **[See "All 24+ Scripts Reference" section below for complete list]**
 
