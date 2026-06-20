@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contentstack Analytics Lab - Epic Trailer</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0d1117;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Arial', sans-serif;
+            color: #00ffff;
+        }
+        .container {
+            width: 100%;
+            max-width: 1400px;
+            padding: 20px;
+        }
+        h1 { text-align: center; color: #00ffff; margin: 20px 0; text-shadow: 0 0 20px #00ffff; }
+        canvas {
+            display: block;
+            margin: 0 auto;
+            background: #0d1117;
+            border: 3px solid #00ffff;
+            border-radius: 8px;
+            box-shadow: 0 0 40px rgba(0, 255, 255, 0.4);
+            width: 100%;
+            height: auto;
+        }
+        .info { text-align: center; margin-top: 20px; color: #39ff14; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 CONTENTSTACK ANALYTICS LAB - EPIC TRAILER 🚀</h1>
+        <canvas id="trailer"></canvas>
+        <div class="info">
+            <p>⚡ 24+ Scripts | 10k+ Entries/Run | 6 Advanced Features | Zero Manual Setup ⚡</p>
+            <p>Complete Content Lifecycle Testing & Automation Laboratory</p>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('trailer');
+        const ctx = canvas.getContext('2d');
+
+        // Responsive canvas
+        function resizeCanvas() {
+            canvas.width = Math.min(window.innerWidth - 40, 1200);
+            canvas.height = 700;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        let time = 0;
+        const scenes = [];
+        let currentScene = 0;
+
+        // Particle system
+        class Particle {
+            constructor(x, y, vx, vy, color, life = 100) {
+                this.x = x;
+                this.y = y;
+                this.vx = vx;
+                this.vy = vy;
+                this.color = color;
+                this.life = life;
+                this.maxLife = life;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life--;
+            }
+            draw(ctx) {
+                ctx.globalAlpha = this.life / this.maxLife;
+                ctx.fillStyle = this.color;
+                ctx.shadowColor = this.color;
+                ctx.shadowBlur = 10;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        // Glowing text effect
+        function drawGlowText(text, x, y, size, color, glow = 20) {
+            ctx.font = `bold ${size}px Arial`;
+            ctx.fillStyle = color;
+            ctx.textAlign = 'center';
+            ctx.shadowColor = color;
+            ctx.shadowBlur = glow;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+            ctx.fillText(text, x, y);
+            ctx.shadowBlur = 0;
+        }
+
+        // Scene 1: Title with animated pulse
+        class SceneTitle {
+            constructor() {
+                this.particles = [];
+                this.alpha = 0;
+            }
+            update() {
+                this.alpha = Math.min(this.alpha + 0.02, 1);
+                if (Math.random() < 0.3) {
+                    this.particles.push(new Particle(
+                        canvas.width / 2 + (Math.random() - 0.5) * 100,
+                        canvas.height / 2,
+                        (Math.random() - 0.5) * 2,
+                        Math.random() * 2 - 3,
+                        '#00ffff'
+                    ));
+                }
+                this.particles = this.particles.filter(p => p.life > 0);
+                this.particles.forEach(p => p.update());
+            }
+            draw() {
+                ctx.globalAlpha = this.alpha;
+                drawGlowText('🚀 CONTENTSTACK ANALYTICS LAB 🚀', canvas.width / 2, 150, 48, '#00ffff', 30);
+                drawGlowText('COMPLETE TESTING & AUTOMATION', canvas.width / 2, 220, 28, '#39ff14', 20);
+                ctx.globalAlpha = 1;
+                this.particles.forEach(p => p.draw(ctx));
+            }
+        }
+
+        // Scene 2: THE POWER - Stats appearing
+        class ScenePower {
+            constructor() {
+                this.stats = [
+                    { label: '24+', value: 'Automation Scripts', color: '#ff006e' },
+                    { label: '10,000', value: 'Entries/Run', color: '#00ffff' },
+                    { label: '6', value: 'Advanced Features', color: '#39ff14' },
+                    { label: '4', value: 'Auth Paths', color: '#0080ff' },
+                    { label: '5', value: 'Workflow Patterns', color: '#c833ff' },
+                    { label: '30', value: 'Branch Lineage', color: '#ff8c00' },
+                ];
+                this.showIndex = 0;
+                this.particles = [];
+            }
+            update() {
+                if (this.showIndex < this.stats.length) {
+                    this.showIndex += 0.03;
+                }
+                if (Math.random() < 0.5) {
+                    const idx = Math.floor(Math.random() * Math.min(this.showIndex, this.stats.length));
+                    const stat = this.stats[idx];
+                    this.particles.push(new Particle(
+                        100 + (idx % 3) * 350 + Math.random() * 50,
+                        300 + Math.floor(idx / 3) * 120 + Math.random() * 50,
+                        (Math.random() - 0.5) * 2,
+                        Math.random() * 2 - 2,
+                        stat.color,
+                        80
+                    ));
+                }
+                this.particles = this.particles.filter(p => p.life > 0);
+                this.particles.forEach(p => p.update());
+            }
+            draw() {
+                drawGlowText('⚡ THE POWER ⚡', canvas.width / 2, 80, 40, '#ff006e', 25);
+
+                const statsToDraw = Math.min(Math.ceil(this.showIndex), this.stats.length);
+                for (let i = 0; i < statsToDraw; i++) {
+                    const stat = this.stats[i];
+                    const row = Math.floor(i / 3);
+                    const col = i % 3;
+                    const x = 100 + col * 350;
+                    const y = 250 + row * 120;
+
+                    // Box
+                    ctx.strokeStyle = stat.color;
+                    ctx.lineWidth = 2;
+                    ctx.globalAlpha = 0.7;
+                    ctx.shadowColor = stat.color;
+                    ctx.shadowBlur = 15;
+                    ctx.strokeRect(x - 50, y - 30, 100, 60);
+                    ctx.globalAlpha = 1;
+                    ctx.shadowBlur = 0;
+
+                    // Text
+                    ctx.font = 'bold 32px Arial';
+                    ctx.fillStyle = stat.color;
+                    ctx.textAlign = 'center';
+                    ctx.fillText(stat.label, x, y - 5);
+                    ctx.font = '14px Arial';
+                    ctx.fillText(stat.value, x, y + 20);
+                }
+
+                this.particles.forEach(p => p.draw(ctx));
+            }
+        }
+
+        // Scene 3: THE FLOW - Pipeline animation
+        class SceneFlow {
+            constructor() {
+                this.boxes = [
+                    { x: 100, label: '📝\nCMA Ops', color: '#ff006e' },
+                    { x: 300, label: '📨\nKAFKA', color: '#39ff14' },
+                    { x: 500, label: '🗄️\nMONGO', color: '#0080ff' },
+                    { x: 700, label: '🔍\nES', color: '#c833ff' },
+                    { x: 900, label: '📊\nDASHBOARDS', color: '#ff8c00' },
+                ];
+                this.particles = [];
+            }
+            update() {
+                // Create continuous flow
+                if (Math.random() < 0.15) {
+                    const startBox = this.boxes[0];
+                    this.particles.push(new Particle(
+                        startBox.x + (Math.random() - 0.5) * 40,
+                        canvas.height / 2 + (Math.random() - 0.5) * 80,
+                        2 + Math.random() * 1,
+                        (Math.random() - 0.5) * 1,
+                        startBox.color,
+                        150
+                    ));
+                }
+                this.particles = this.particles.filter(p => p.life > 0 && p.x < canvas.width);
+                this.particles.forEach(p => p.update());
+            }
+            draw() {
+                drawGlowText('→ THE FLOW →', canvas.width / 2, 80, 40, '#39ff14', 25);
+                drawGlowText('Data Pipeline: From Operations to Analytics', canvas.width / 2, 130, 16, '#7fff00');
+
+                // Draw boxes
+                this.boxes.forEach((box, i) => {
+                    ctx.fillStyle = '#1a1f26';
+                    ctx.strokeStyle = box.color;
+                    ctx.lineWidth = 3;
+                    ctx.globalAlpha = 0.8 + Math.sin(time * 0.02 + i) * 0.2;
+                    ctx.shadowColor = box.color;
+                    ctx.shadowBlur = 20;
+                    ctx.fillRect(box.x - 40, canvas.height / 2 - 40, 80, 80);
+                    ctx.strokeRect(box.x - 40, canvas.height / 2 - 40, 80, 80);
+
+                    ctx.globalAlpha = 1;
+                    ctx.shadowBlur = 0;
+                    ctx.fillStyle = box.color;
+                    ctx.font = 'bold 14px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(box.label, box.x, canvas.height / 2);
+
+                    // Draw arrows
+                    if (i < this.boxes.length - 1) {
+                        ctx.strokeStyle = '#00ffff';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(box.x + 40, canvas.height / 2);
+                        ctx.lineTo(this.boxes[i + 1].x - 40, canvas.height / 2);
+                        ctx.stroke();
+                    }
+                });
+
+                // Draw particles
+                this.particles.forEach(p => p.draw(ctx));
+
+                // Labels
+                ctx.fillStyle = '#7fff00';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                this.boxes.forEach((box, i) => {
+                    if (i < this.boxes.length - 1) {
+                        ctx.fillText(['EVENTS', 'CONSUME', 'INDEX', 'METRICS'][i],
+                            (box.x + this.boxes[i + 1].x) / 2, canvas.height / 2 - 70);
+                    }
+                });
+            }
+        }
+
+        // Scene 4: THE IMPACT - Growing numbers
+        class SceneImpact {
+            constructor() {
+                this.metrics = [
+                    { label: '✅ Complete Meter Coverage', color: '#39ff14', progress: 0 },
+                    { label: '✅ Multi-User Simulation', color: '#0080ff', progress: 0 },
+                    { label: '✅ 4 Authentication Paths', color: '#c833ff', progress: 0 },
+                    { label: '✅ Self-Healing Logic', color: '#ff8c00', progress: 0 },
+                    { label: '✅ Real-Time Dashboards', color: '#ff1493', progress: 0 },
+                    { label: '✅ Enterprise Scale Ready', color: '#00ffff', progress: 0 },
+                ];
+            }
+            update() {
+                this.metrics.forEach(m => {
+                    if (m.progress < 1) m.progress += 0.02;
+                });
+            }
+            draw() {
+                drawGlowText('⚡ THE IMPACT ⚡', canvas.width / 2, 80, 40, '#00ffff', 25);
+
+                this.metrics.forEach((metric, i) => {
+                    const y = 180 + i * 80;
+                    const barWidth = canvas.width - 200;
+
+                    // Bar background
+                    ctx.fillStyle = '#1a1f26';
+                    ctx.fillRect(100, y, barWidth, 40);
+
+                    // Progress bar
+                    ctx.fillStyle = metric.color;
+                    ctx.shadowColor = metric.color;
+                    ctx.shadowBlur = 15;
+                    ctx.fillRect(100, y, barWidth * metric.progress, 40);
+                    ctx.shadowBlur = 0;
+
+                    // Label
+                    ctx.fillStyle = metric.color;
+                    ctx.font = 'bold 16px Arial';
+                    ctx.textAlign = 'left';
+                    ctx.fillText(metric.label, 120, y + 27);
+
+                    // Percentage
+                    const percentage = Math.floor(metric.progress * 100);
+                    ctx.font = 'bold 14px Arial';
+                    ctx.fillText(percentage + '%', 100 + barWidth + 20, y + 27);
+                });
+            }
+        }
+
+        // Scene 5: Finale - All together
+        class SceneFinale {
+            constructor() {
+                this.particles = [];
+                this.burstTimer = 0;
+            }
+            update() {
+                this.burstTimer++;
+                // Burst of particles
+                if (this.burstTimer % 10 === 0) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = Math.random() * 3 + 2;
+                    this.particles.push(new Particle(
+                        canvas.width / 2,
+                        canvas.height / 2,
+                        Math.cos(angle) * speed,
+                        Math.sin(angle) * speed,
+                        ['#ff006e', '#39ff14', '#0080ff', '#c833ff', '#ff8c00'][Math.floor(Math.random() * 5)],
+                        120
+                    ));
+                }
+                this.particles = this.particles.filter(p => p.life > 0);
+                this.particles.forEach(p => p.update());
+            }
+            draw() {
+                ctx.globalAlpha = 0.1;
+                ctx.fillStyle = '#00ffff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.globalAlpha = 1;
+
+                drawGlowText('🎬 COMING TO PRODUCTION 🎬', canvas.width / 2, 150, 44, '#ff006e', 40);
+                drawGlowText('Every 5 Minutes', canvas.width / 2, 220, 32, '#39ff14', 30);
+                drawGlowText('Zero Manual Setup • Complete Coverage • Enterprise Grade', canvas.width / 2, 300, 18, '#00ffff');
+
+                this.particles.forEach(p => p.draw(ctx));
+            }
+        }
+
+        // Initialize scenes
+        scenes.push(new SceneTitle());
+        scenes.push(new ScenePower());
+        scenes.push(new SceneFlow());
+        scenes.push(new SceneImpact());
+        scenes.push(new SceneFinale());
+
+        // Animation loop
+        function animate() {
+            time++;
+
+            // Clear canvas
+            ctx.fillStyle = '#0d1117';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Scene timing (seconds)
+            const sceneLength = 250; // Each scene lasts ~250 frames
+            currentScene = Math.floor((time % (sceneLength * scenes.length)) / sceneLength);
+
+            // Update and draw current scene
+            scenes[currentScene].update();
+            scenes[currentScene].draw();
+
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
