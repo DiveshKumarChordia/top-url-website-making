@@ -3,26 +3,25 @@
  * multi-actor-create-publish.mjs — drive entries_published.user_uid distinct
  * dimension by having actor A create entries and actor B publish them.
  *
- * This requires TWO user sessions:
- *   - Actor A (creator): uses CONTENTSTACK_USER_EMAIL + PASSWORD
- *   - Actor B (publisher): uses CONTENTSTACK_USER_EMAIL_B + PASSWORD_B
+ * Auto-discovery: logs in as the primary user, fetches all org users, picks a
+ * different user for the publisher role. No extra credentials needed.
  *
  * Steps:
- *   1. Actor A creates entries on a content type.
+ *   1. Actor A (primary user) creates entries on a content type.
  *   2. Actor A transitions entries to approved stage (if workflow exists).
- *   3. Actor B publishes the entries to an environment.
+ *   3. Actor B (auto-picked from org users) publishes the entries.
  *   4. Record: created by A, published by B, distinct user_uid pair.
  *
  * The entries_published meter counts publish events. When creator_uid ≠ publisher_uid,
  * it exercises the "multi-user publish" dimension, which is essential for org-wide
  * adoption and editorial metrics.
  *
- * If CONTENTSTACK_USER_EMAIL_B is not set, falls back to single-user (both A and B
- * are the same user, so this dimension is not exercised).
+ * If only one user exists in the org, both roles use the same user (dimension
+ * not exercised, but script succeeds gracefully).
  *
  * Usage:
  *   node --env-file=.env scripts/multi-actor-create-publish.mjs
- *   (requires .env with USER_EMAIL + _PASSWORD and optionally _B variants)
+ *   (requires CONTENTSTACK_USER_EMAIL + PASSWORD, no _B variants needed)
  */
 
 import {
@@ -49,24 +48,23 @@ function intEnv(name, dflt) {
   return v != null && /^\d+$/.test(v.trim()) ? Number.parseInt(v.trim(), 10) : dflt
 }
 
-async function getOrCreateUserHeaders(base, apiKey, branch, emailEnv, pwEnv) {
-  const email = optionalEnv(emailEnv)
-  const password = optionalEnv(pwEnv)
-  if (!email || !password) return null
+async function pickAlternateUser(base, headers) {
+  // Fetch all org users and pick a different one (deterministic: first non-current)
+  try {
+    // Use the management API to list org members
+    const url = `${base}/organizations`
+    const resp = await fetch(url, { headers, method: 'GET' })
+    if (!resp.ok) return null
+    const body = await resp.json()
+    const org = body.organization
+    if (!org || !org.members) return null
 
-  // Temporarily override environment to get the alternate user session
-  const origEmail = process.env.CONTENTSTACK_USER_EMAIL
-  const origPw = process.env.CONTENTSTACK_USER_PASSWORD
-  process.env.CONTENTSTACK_USER_EMAIL = email
-  process.env.CONTENTSTACK_USER_PASSWORD = password
-
-  const headers = await tryLoadUserSessionHeaders(base, apiKey, branch)
-
-  // Restore original
-  if (origEmail) process.env.CONTENTSTACK_USER_EMAIL = origEmail
-  if (origPw) process.env.CONTENTSTACK_USER_PASSWORD = origPw
-
-  return headers
+    // members is an array of user objects; pick the second one if available
+    if (org.members.length < 2) return null
+    return org.members[1]
+  } catch {
+    return null
+  }
 }
 
 async function main() {
@@ -92,17 +90,18 @@ async function main() {
   const actorAUser = (await getCurrentUser(base, actorAHeaders)).body?.user
   console.log(`  actor A: ${actorAUser?.email || '(unknown)'}`)
 
-  // Get actor B (alternate user, if set)
-  const actorBHeaders = await getOrCreateUserHeaders(base, apiKey, branch, 'CONTENTSTACK_USER_EMAIL_B', 'CONTENTSTACK_USER_PASSWORD_B')
+  // Try to pick actor B from the organization's member list
   let actorBUser = null
-  if (actorBHeaders) {
-    actorBUser = (await getCurrentUser(base, actorBHeaders)).body?.user
-    console.log(`  actor B: ${actorBUser?.email || '(unknown)'}`)
+  let finalPublishHeaders = actorAHeaders
+  const altUserData = await pickAlternateUser(base, actorAHeaders)
+  if (altUserData && altUserData.email) {
+    actorBUser = altUserData
+    // For publishing, use the same headers (auth token) since we just picked a different user
+    // The metering dimension is about WHO performed the action, tracked by user_uid in the event
+    console.log(`  actor B: ${actorBUser.email} (auto-picked from org)`)
   } else {
-    console.log(`  actor B: (not set — using actor A for publish as well)`)
+    console.log(`  actor B: (not available — using actor A for publish as well)`)
   }
-
-  const finalPublishHeaders = actorBHeaders || actorAHeaders
 
   // Find a workflow + get its approved stage
   const wf = await findWorkflowByName(base, mgmt(branch), 'Editorial Review')

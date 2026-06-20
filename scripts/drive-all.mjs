@@ -129,6 +129,9 @@ async function periodicPhase() {
   //    org under its entry cap and drives entry_deleted meter events). Runs first
   //    so the create step has headroom.
   results.push(await runStep('delete old entries', 'delete-old-entries.mjs'))
+  // 1b. Backfill aged entries — if retention targets aren't met after deletion,
+  //    create new entries to ensure the aged-stalls and other scenarios have material.
+  results.push(await runStep('backfill aged entries', 'backfill-aged-entries.mjs'))
   // 2. Create new entries in the master locale (resolves __REF__ placeholders).
   results.push(await runStep('periodic entries from manifest', 'periodic-entries-from-manifest.mjs'))
   // 3. Localize the newest entries into non-master locales (fr-fr, de-de,
@@ -153,31 +156,17 @@ async function periodicPhase() {
   if (process.env.CONTENTSTACK_BRANCH_LIFECYCLE_ENABLED !== 'false') {
     results.push(await runStep('branch lifecycle', 'branch-lifecycle.mjs'))
   }
-  // 8. Meter-coverage scenarios: drive unmeasured dimensions from analytics pipeline.
-  //    Each scenario is opt-in via env.
-  if (process.env.CONTENTSTACK_EDIT_AFTER_PUBLISH_ENABLED !== 'false') {
-    results.push(await runStep('edit after publish (entries_in_progress)', 'edit-after-publish.mjs'))
-  }
-  if (process.env.CONTENTSTACK_PERMANENT_DELETE_ENABLED !== 'false') {
-    results.push(await runStep('permanent deletes (entries_deleted)', 'permanent-deletes.mjs'))
-  }
-  if (process.env.CONTENTSTACK_AGED_STALL_ENABLED !== 'false') {
-    results.push(await runStep('aged stalls (stalled_by_stage)', 'aged-stalls.mjs'))
-  }
-  if (process.env.CONTENTSTACK_NO_WORKFLOW_ENABLED !== 'false') {
-    results.push(await runStep('no-workflow CT (entries_without_workflow)', 'no-workflow-ct.mjs'))
-  }
-  if (process.env.CONTENTSTACK_MULTI_ACTOR_ENABLED !== 'false') {
-    results.push(await runStep('multi-actor create/publish (user_uid)', 'multi-actor-create-publish.mjs'))
-  }
-  if (process.env.CONTENTSTACK_BRANCH_LOCALE_DELETE_ENABLED !== 'false') {
-    results.push(await runStep('branch/locale deletion (orphan cleanup)', 'branch-locale-deletion.mjs'))
-  }
+  // 8. Meter-coverage scenarios: exercise unmeasured meter dimensions from analytics.
+  //    All enabled by default; comment out to skip any.
+  results.push(await runStep('edit after publish (entries_in_progress)', 'edit-after-publish.mjs'))
+  results.push(await runStep('permanent deletes (entries_deleted)', 'permanent-deletes.mjs'))
+  results.push(await runStep('aged stalls (stalled_by_stage)', 'aged-stalls.mjs'))
+  results.push(await runStep('no-workflow CT (entries_without_workflow)', 'no-workflow-ct.mjs'))
+  results.push(await runStep('multi-actor create/publish (user_uid)', 'multi-actor-create-publish.mjs'))
+  results.push(await runStep('branch/locale deletion (orphan cleanup)', 'branch-locale-deletion.mjs'))
   // 9. User invitation: invite 10 new users per run (org-level metering).
-  //    Opt-out via env; requires CONTENTSTACK_USER_EMAIL + PASSWORD (UI automation).
-  if (process.env.CONTENTSTACK_USER_INVITER_ENABLED !== 'false') {
-    results.push(await runStep('invite 10 users', 'invite-users.mjs'))
-  }
+  //    Auto-picks a user from the org; no extra credentials needed.
+  results.push(await runStep('invite 10 users', 'invite-users.mjs'))
   return results
 }
 

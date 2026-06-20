@@ -91,6 +91,19 @@ function localizedTitle(originalTitle, localeCode, entryUid) {
   return `[${tag}] ${originalTitle || 'Untitled'}${suffix}`
 }
 
+// Fetch available locales on this stack (to skip locales that don't exist)
+async function getAvailableLocales(base, headers) {
+  try {
+    const url = `${base}/locales`
+    const resp = await fetch(url, { headers, method: 'GET' })
+    if (!resp.ok) return []
+    const body = await resp.json()
+    return (body.locales || []).map((l) => l.code).filter(Boolean)
+  } catch {
+    return []
+  }
+}
+
 async function localizeForContentType(base, headers, ctUid, targets, opts) {
   const { maxPerCt, concurrency } = opts
   const { ok, body } = await listEntries(base, headers, ctUid, {
@@ -209,6 +222,19 @@ async function main() {
   console.log(`  maxPerCt: ${maxPerCt}   concurrency: ${concurrency}`)
   if (DRY_RUN) console.log('** DRY RUN — no API writes **')
 
+  // Check which locales actually exist on the stack
+  const availableLocales = await getAvailableLocales(base, headers)
+  const validTargets = targets.filter((t) => availableLocales.includes(t))
+  const skipped = targets.filter((t) => !availableLocales.includes(t))
+  if (skipped.length > 0) {
+    console.log(`  ⚠ skipping ${skipped.length} locale(s) not on stack: ${skipped.join(', ')}`)
+  }
+  if (validTargets.length === 0) {
+    console.log(`  ⚠ no valid target locales — skipping localization`)
+    writeStepReport({ planned: contentTypes.length * targets.length, actual: 0, failed: 0, kpis: { localized: 0, already: 0, localizeFailed: 0 } })
+    return
+  }
+
   let totalL = 0
   let totalA = 0
   let totalF = 0
@@ -217,7 +243,7 @@ async function main() {
       base,
       headers,
       ctUid,
-      targets,
+      validTargets,
       { maxPerCt, concurrency },
     )
     totalL += localized
