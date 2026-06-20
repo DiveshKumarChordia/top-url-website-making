@@ -80,6 +80,10 @@
   margin-bottom: 22px;
 }
 
+.runs__panel--full {
+  grid-column: 1 / -1;
+}
+
 /* Success-per-run bars */
 .bars {
   display: flex;

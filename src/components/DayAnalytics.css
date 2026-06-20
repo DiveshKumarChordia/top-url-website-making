@@ -1,0 +1,233 @@
+.day-analytics {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.day-analytics--empty {
+  color: var(--muted);
+  text-align: center;
+  padding: 48px 24px;
+  font-style: italic;
+}
+
+.day-analytics__header {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid var(--border);
+}
+
+.day-analytics__date {
+  margin: 0 0 8px 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.day-analytics__subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+/* Metrics Grid */
+.day-analytics__metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.metric {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px;
+  text-align: center;
+}
+
+.metric__value {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+
+.metric__label {
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Sections */
+.day-analytics__section {
+  margin-bottom: 24px;
+  padding: 16px;
+  background: var(--bg);
+  border-radius: 6px;
+}
+
+.day-analytics__section-title {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text);
+}
+
+/* Trend Chart */
+.trend {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 80px;
+  margin-bottom: 12px;
+}
+
+.trend__point {
+  flex: 1;
+  min-width: 4px;
+  border-radius: 2px 2px 0 0;
+  background: var(--accent);
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.trend__point:hover {
+  opacity: 0.8;
+}
+
+.trend__labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--muted);
+  padding: 0 4px;
+}
+
+/* Runs List */
+.runs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.run-item {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.run-item--green {
+  border-left: 4px solid #00b300;
+}
+
+.run-item__time {
+  font-weight: 600;
+  font-size: 13px;
+  min-width: 60px;
+}
+
+.run-item__stats {
+  display: flex;
+  gap: 12px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.run-item__stat {
+  font-size: 12px;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+.run-item__stat strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.run-item__stat--error {
+  color: #f44336;
+}
+
+.run-item__bar {
+  flex-shrink: 0;
+  height: 4px;
+  width: 40px;
+  border-radius: 2px;
+}
+
+/* Operations Grid */
+.ops-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 12px;
+}
+
+.op-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px;
+  text-align: center;
+}
+
+.op-card__number {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.op-card__label {
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.op-card__bar {
+  height: 3px;
+  border-radius: 2px;
+  width: 100%;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .day-analytics {
+    padding: 16px;
+  }
+
+  .day-analytics__metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .day-analytics__section {
+    padding: 12px;
+  }
+
+  .metric {
+    padding: 12px;
+  }
+
+  .metric__value {
+    font-size: 20px;
+  }
+
+  .run-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .run-item__stats {
+    width: 100%;
+  }
+}

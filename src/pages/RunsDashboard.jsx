@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
+import CalendarHeatmap from '../components/CalendarHeatmap'
+import DayAnalytics from '../components/DayAnalytics'
 import './RunsDashboard.css'
 
 // drive-all appends each run to public/run-history.json (committed back by CI).
@@ -177,6 +179,8 @@ function computeAll(runs) {
 export default function RunsDashboard() {
   const [runs, setRuns] = useState(null)
   const [error, setError] = useState('')
+  const [selectedDay, setSelectedDay] = useState(null)
+  const [dayStats, setDayStats] = useState(null)
 
   useEffect(() => {
     let alive = true
@@ -213,6 +217,31 @@ export default function RunsDashboard() {
           <strong style={{ color: ratioColor(data.stepRate) }}>{(data.stepRate * 100).toFixed(0)}%</strong> steps ok
         </p>
       </header>
+
+      {/* Calendar Heatmap Section */}
+      <section className="runs__panel runs__panel--full">
+        <h2 className="runs__h2">Runs Calendar 📅</h2>
+        <CalendarHeatmap
+          runs={data.sorted}
+          onDaySelect={(day, stats) => {
+            setSelectedDay(day)
+            setDayStats(stats)
+          }}
+          selectedDay={selectedDay}
+        />
+      </section>
+
+      {/* Day Analytics Section */}
+      {selectedDay && (
+        <section className="runs__panel runs__panel--full">
+          <h2 className="runs__h2">Analytics for Selected Day 📊</h2>
+          <DayAnalytics
+            day={selectedDay}
+            runs={data.sorted.filter((r) => new Date(r.startedAt).toISOString().split('T')[0] === selectedDay)}
+            stats={dayStats}
+          />
+        </section>
+      )}
 
       {data.groups.map((g) => (
         <section className="kgroup" key={g.title}>
