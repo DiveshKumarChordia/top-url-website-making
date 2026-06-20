@@ -75,51 +75,271 @@ Together they create a **production-grade testing environment** running continuo
 
 ## What's Included
 
+**The Ultimate Content Lifecycle Testing & Automation Laboratory**
+
+### Complete Feature Inventory
+
 ```mermaid
 graph TB
-    subgraph Frontend["FRONTEND (Vite + React)"]
-        APP["Entry Listing App<br/>Delivery API integration<br/>Per-entry routes"]
-        DIGEST["Digest/Changelog UI<br/>Unified feed, filters"]
-        HERO["3D Hero<br/>Three.js/React Three Fiber"]
+    ROOT["🚀 CONTENTSTACK ANALYTICS LAB<br/>Full-Stack Testing & Automation<br/>24+ Scripts | 6 Advanced Features<br/>Complete Meter Coverage"]
+    
+    subgraph FRONTEND["🎨 FRONTEND (Vite + React)<br/>Published Content Delivery"]
+        subgraph FE_PAGES["📄 Pages"]
+            FE_HOME["HomePage<br/>• Entry listing with pagination<br/>• Unified digest/changelog UI<br/>• Filtering & search<br/>• Responsive grid layout"]
+            FE_ENTRY["EntryPage<br/>• Single entry detail view<br/>• Field rendering<br/>• Markdown support<br/>• Reference expansion<br/>• Per-entry route: /entry/:ct/:uid"]
+            FE_DASH["RunsDashboard<br/>• Automation KPI tracking<br/>• Real-time trend charts<br/>• Error log viewer<br/>• Success rate metrics<br/>• Per-step breakdown"]
+        end
+        
+        subgraph FE_COMPONENTS["⚙️ React Components"]
+            FE_LAYOUT["Layout.jsx<br/>• App shell & navigation<br/>• Header with refresh<br/>• Footer with metadata<br/>• Dark/light mode"]
+            FE_DIGEST["DigestItem.jsx<br/>• Changelog grouping<br/>• Entry metadata<br/>• Timestamp display<br/>• Filter tags"]
+            FE_HERO["HeroCanvas.jsx<br/>• Three.js 3D scene<br/>• React Three Fiber<br/>• Responsive rendering<br/>• Interactive controls"]
+        end
+        
+        subgraph FE_LIBS["📚 Frontend Libraries"]
+            FE_DELIVERY["contentstackDelivery.js<br/>• Delivery API client<br/>• Concurrent GETs<br/>• Cache headers<br/>• 100x+ parallel requests<br/>• Branch support"]
+            FE_FORMAT["entryFormat.js<br/>• Field formatting<br/>• Type conversion<br/>• Date/time display<br/>• Rich text parsing"]
+            FE_EXCERPT["entryExcerpt.js<br/>• Text summarization<br/>• Preview generation<br/>• Word limit handling"]
+            FE_EVENTS["siteEvents.js<br/>• Analytics tracking<br/>• Event logging<br/>• User interaction monitoring"]
+        end
+        
+        subgraph FE_FEATURES["✨ Frontend Features"]
+            FE_F1["✅ Per-entry routes with dynamic params<br/>✅ Unified digest UI with grouping<br/>✅ 100x+ concurrent Delivery API calls<br/>✅ Three.js 3D hero visualization<br/>✅ Branch-aware URLs<br/>✅ Header refresh without page reload<br/>✅ Responsive mobile design<br/>✅ Markdown field rendering<br/>✅ Reference field expansion<br/>✅ Group/block field rendering"]
+        end
     end
     
-    subgraph Performance["PERFORMANCE TESTING"]
-        LAUNCH["Launch Site Warming<br/>Cache priming"]
-        HITTING["URL Hitting<br/>100x+ concurrent GETs"]
-        WARMUP["Delivery Warmup<br/>Perf validation"]
+    subgraph PERF["⚡ PERFORMANCE TESTING<br/>Cache Warming & Load Testing"]
+        subgraph PERF_TYPES["📊 Testing Modes"]
+            PERF_LAUNCH["Launch Site Warming<br/>• Cache priming<br/>• Site availability check<br/>• Warmup metrics"]
+            PERF_DELIVERY["Delivery API Hitting<br/>• 100x concurrent GETs<br/>• Entry list endpoint<br/>• Single-entry endpoint<br/>• Cache hit/miss tracking"]
+            PERF_CONCURRENT["Concurrent Testing<br/>• Parallel request handling<br/>• Response time tracking<br/>• p50/p95/p99 metrics"]
+        end
+        
+        subgraph PERF_METRICS["📈 Metrics Tracked"]
+            PERF_M1["Response Times<br/>• Average latency<br/>• Percentile buckets<br/>• Time per endpoint"]
+            PERF_M2["Cache Performance<br/>• Cache hits<br/>• Cache misses<br/>• Hit ratio %"]
+            PERF_M3["Availability<br/>• Success rate<br/>• Error counts<br/>• Status codes"]
+        end
+        
+        subgraph PERF_OUTPUT["📁 Reports Generated"]
+            PERF_O1["public/warmup-report.json<br/>• Aggregated stats<br/>• Per-endpoint breakdown<br/>• Cache metrics<br/>• Timing percentiles"]
+            PERF_O2["Console Logs<br/>• Real-time counts<br/>• Status codes<br/>• Cache hit summaries"]
+        end
     end
     
-    subgraph Automation["AUTOMATION FRAMEWORK (24+ Scripts)"]
-        BOOTSTRAP["Bootstrap Phase (4 scripts)<br/>Create CTs, locales, workflows, rules"]
-        PERIODIC["Periodic Phase (8 scripts)<br/>Delete, Backfill, Create, Localize,<br/>Publish, Transition, Churn, Branch"]
-        METER["Meter-Coverage (6 scenarios)<br/>Edit, Delete, Stall, No-WF,<br/>Multi-Actor, Orphan"]
-        ADVANCED["Advanced (6+ scripts)<br/>Locale experiments, user inviter,<br/>single-entry creator, role manager"]
+    subgraph AUTO["🤖 AUTOMATION FRAMEWORK<br/>24+ Scripts | All Meter Dimensions"]
+        subgraph AUTO_ORCH["🎯 Orchestration"]
+            AUTO_ORCH_SCRIPT["drive-all.mjs<br/>• Phase controller<br/>• Mode selector<br/>• Error handling<br/>• Report aggregation"]
+        end
+        
+        subgraph AUTO_BOOTSTRAP["🔧 Bootstrap (1x Setup) [4 Scripts]"]
+            AUTO_B1["1️⃣ bootstrap-from-manifest.mjs<br/>• Create content types<br/>• Define fields<br/>• Set field validations<br/>• Enable features"]
+            AUTO_B2["2️⃣ seed-locales-branches.mjs<br/>• Create 5 locales<br/>• Setup fallback chains<br/>• Create 30-branch lineage<br/>• Master → Deep nesting"]
+            AUTO_B3["3️⃣ seed-workflows.mjs<br/>• Create workflow definitions<br/>• Define 5-stage patterns<br/>• Setup transitions<br/>• Assign to CTs"]
+            AUTO_B4["4️⃣ seed-publishing-rules.mjs<br/>• Configure publish rules<br/>• Set environment targets<br/>• Enable/disable rules"]
+        end
+        
+        subgraph AUTO_PERIODIC["📅 Periodic (Every 5min) [8 Scripts]"]
+            AUTO_P1["1️⃣ delete-old-entries.mjs<br/>• Tiered retention logic<br/>• >30d: keep 5k<br/>• 15-30d: keep 10k<br/>• 7-15d: keep 20k<br/>• Delete oldest first"]
+            AUTO_P2["2️⃣ backfill-aged-entries.mjs<br/>• Restore from trash<br/>• If count < target<br/>• Preserve created_at<br/>• Maintain aged status"]
+            AUTO_P3["3️⃣ periodic-entries-from-manifest.mjs<br/>• Create 10,000 entries/run<br/>• All content types<br/>• Random field values<br/>• Track creation KPIs"]
+            AUTO_P4["4️⃣ localize-entries.mjs<br/>• 5 non-master locales<br/>• Fallback chains<br/>• Auto-create missing<br/>• entry_created x5 events"]
+            AUTO_P5["5️⃣ bulk-publish-cycle.mjs<br/>• Publish 60% of entries<br/>• Unpublish 15%<br/>• Keep 25% unpublished<br/>• entry_published events"]
+            AUTO_P6["6️⃣ seed-workflows.mjs (Periodic)<br/>• Existing workflow reuse<br/>• Apply to new entries<br/>• Assign to all CTs<br/>• Enable transitions"]
+            AUTO_P7["7️⃣ churn-orphans.mjs<br/>• Clean orphaned entries<br/>• Percentage-based<br/>• Selective deletion<br/>• Preserve data for analytics"]
+            AUTO_P8["8️⃣ branch-lifecycle.mjs<br/>• 30-branch lineage<br/>• 10x entry creation/branch<br/>• No teardown<br/>• Data persistence"]
+        end
+        
+        subgraph AUTO_METER["🎯 Meter-Coverage (6 Scenarios)"]
+            AUTO_M1["📝 edit-after-publish<br/>• Create entry<br/>• Publish it<br/>• Edit published entry<br/>• Trigger in-progress metric"]
+            AUTO_M2["🗑️ permanent-deletes<br/>• Identify entries<br/>• Soft delete<br/>• Hard delete<br/>• entry_deleted events"]
+            AUTO_M3["⏳ aged-stalls<br/>• Create entries<br/>• Transition to stage<br/>• Keep > 30 days<br/>• stalled_by_stage metric"]
+            AUTO_M4["❌ no-workflow-ct<br/>• Create CT without workflow<br/>• Add entries<br/>• No transitions<br/>• entries_without_workflow metric"]
+            AUTO_M5["👥 multi-actor-create-publish<br/>• Round-robin tokens<br/>• Multiple user_uid<br/>• Create & publish<br/>• user_uid dimension"]
+            AUTO_M6["🔗 branch-locale-deletion<br/>• Create branch + locale<br/>• Delete branch<br/>• Delete locale<br/>• Orphan cleanup events"]
+        end
+        
+        subgraph AUTO_USERS["👤 User Management [1 Script]"]
+            AUTO_U1["invite-users.mjs<br/>• Invite 10 users/run<br/>• Org admin portal<br/>• Playwright automation<br/>• Auto-accept logic<br/>• CMS role assignment"]
+        end
+        
+        subgraph AUTO_UTILS["🛠️ Utilities & Standalone [5 Scripts]"]
+            AUTO_UT1["create-and-publish-entry.mjs<br/>• Single entry creation<br/>• Immediate publish<br/>• Used for single tests"]
+            AUTO_UT2["ensure-stack-user-role.mjs<br/>• Check CMS roles<br/>• Auto-assign missing<br/>• Via shareStack API"]
+            AUTO_UT3["locale-experiments.mjs<br/>• Destructive locale testing<br/>• Create/populate/delete<br/>• Gated by env var"]
+            AUTO_UT4["warm-launch-urls.mjs<br/>• Launch site warming<br/>• Concurrent Delivery API<br/>• Cache priming"]
+            AUTO_UT5["Additional utils<br/>• Schema validation<br/>• Field generation<br/>• Custom scripts"]
+        end
+        
+        subgraph AUTO_LIBS["📚 Core Libraries (Always Used)"]
+            AUTO_LIB1["cma.mjs<br/>• CMA API wrapper<br/>• Rate limiting<br/>• Retry logic<br/>• Self-healing<br/>• Auto-create missing:<br/>  - Locales<br/>  - Workflows<br/>  - User roles"]
+            AUTO_LIB2["totp.mjs<br/>• TOTP code generation<br/>• Google Authenticator<br/>• 6-digit codes<br/>• Time-based OTP"]
+            AUTO_LIB3["entry-placeholders.mjs<br/>• __TIMESTAMP__<br/>• __UUID__<br/>• __RANDOM_INT__<br/>• __RANDOM_CHOICE__<br/>• __ENTRY_UID__<br/>• __TAX_TERMS__<br/>• Dynamic resolution"]
+            AUTO_LIB4["workflow-patterns.mjs<br/>• Linear pattern<br/>• Skip pattern<br/>• Rework pattern<br/>• PartialStall pattern<br/>• FirstOnly pattern<br/>• Weighted distribution"]
+            AUTO_LIB5["schema-from-fields.mjs<br/>• Auto-generate schema<br/>• Field definitions<br/>• Validation rules"]
+            AUTO_LIB6["progress.mjs + report.mjs<br/>• Progress tracking<br/>• KPI aggregation<br/>• Report generation<br/>• JSON output"]
+        end
     end
     
-    subgraph Features["ADVANCED FEATURES"]
-        MULTIUSER["Multi-User Simulation<br/>Round-robin tokens<br/>Distinct user_uid"]
-        AUTH["Authentication (4 Paths)<br/>Authtoken, Email+Pwd,<br/>2FA/TOTP, TFA Token"]
-        PLACEHOLDER["Entry Placeholders<br/>__TIMESTAMP__, __UUID__,<br/>__RANDOM_*, __TAX_TERMS__"]
-        LOCALE["Locale Experiments<br/>Destructive testing<br/>Fallback chains"]
-        WORKFLOW["Workflow Patterns (5)<br/>Linear, Skip, Rework,<br/>Stall, FirstOnly"]
+    subgraph ADVANCED["✨ ADVANCED FEATURES"]
+        subgraph ADV_MULTIUSER["👥 Multi-User Simulation"]
+            ADV_MU1["Round-Robin Tokens<br/>• CONTENTSTACK_MANAGEMENT_TOKENS<br/>• CSV list of tokens<br/>• Cycle through tokens<br/>• Distinct user_uid per request<br/>• Parallel execution"]
+            ADV_MU2["Use Cases<br/>• Multi-actor workflows<br/>• User dimension tracking<br/>• Concurrent operations<br/>• Realistic team scenarios"]
+        end
+        
+        subgraph ADV_AUTH["🔐 Authentication (4 Paths)"]
+            ADV_AUTH1["1. Cached Authtoken<br/>• Browser session<br/>• Token from login<br/>• Fast reuse"]
+            ADV_AUTH2["2. Email + Password<br/>• Direct login<br/>• Session creation<br/>• Workflow transitions"]
+            ADV_AUTH3["3. TOTP/2FA<br/>• Google Authenticator<br/>• 6-digit codes<br/>• Time-based OTP<br/>• totp.mjs library"]
+            ADV_AUTH4["4. TFA Token<br/>• One-off token<br/>• Bypass 2FA<br/>• Admin override<br/>• Restricted use"]
+        end
+        
+        subgraph ADV_PLACEHOLDER["🏷️ Entry Placeholders"]
+            ADV_PH1["Supported Placeholders<br/>• __TIMESTAMP__ → ISO timestamp<br/>• __UUID__ → uuidv4()<br/>• __RANDOM_INT__ → number<br/>• __RANDOM_CHOICE__ → array pick<br/>• __ENTRY_UID__ → entry reference<br/>• __TAX_TERMS__ → taxonomy terms"]
+            ADV_PH2["Use Cases<br/>• Dynamic field values<br/>• Reference linking<br/>• Test data generation<br/>• Time-based testing<br/>• Taxonomy assignment"]
+        end
+        
+        subgraph ADV_LOCALE["🌍 Locale Experiments"]
+            ADV_LOC1["Destructive Testing<br/>• Create locales<br/>• Populate entries<br/>• Delete locales<br/>• Orphan scenarios<br/>• Fallback chain validation"]
+            ADV_LOC2["Gating<br/>• CONTENTSTACK_RUN_LOCALE_EXPERIMENTS=1<br/>• Optional feature<br/>• Off by default<br/>• Safe destructive ops"]
+        end
+        
+        subgraph ADV_WORKFLOW["🔄 Workflow Patterns (5 Types)"]
+            ADV_WF1["Pattern Types<br/>• Linear: A→B→C→D→E<br/>• Skip: A→C→E<br/>• Rework: A→B→A→C<br/>• PartialStall: A→B→(stuck)"]
+            ADV_WF2["Distribution<br/>• Weighted random selection<br/>• Coverage all patterns<br/>• Realistic transitions<br/>• Stress test workflows"]
+        end
     end
     
-    Frontend --> APP
-    Frontend --> DIGEST
-    Frontend --> HERO
-    Performance --> LAUNCH
-    Performance --> HITTING
-    Performance --> WARMUP
-    Automation --> BOOTSTRAP
-    Automation --> PERIODIC
-    Automation --> METER
-    Automation --> ADVANCED
-    Features --> MULTIUSER
-    Features --> AUTH
-    Features --> PLACEHOLDER
-    Features --> LOCALE
-    Features --> WORKFLOW
+    subgraph MONITORING["📊 MONITORING & REPORTING"]
+        subgraph MON_KPI["📈 KPIs Tracked"]
+            MON_K1["Per-Run KPIs<br/>• Entries created<br/>• Entries localized<br/>• Entries published<br/>• Entries deleted<br/>• Workflow transitions<br/>• Users invited<br/>• Scenario success %"]
+            MON_K2["Aggregated Metrics<br/>• Run history JSON<br/>• Trend analysis<br/>• Success rate<br/>• Error rate<br/>• Time per phase"]
+        end
+        
+        subgraph MON_DASH["🎯 Dashboard (At /runs)"]
+            MON_D1["RunsDashboard Features<br/>• Last 60 runs displayed<br/>• Trend charts<br/>• KPI breakdown<br/>• Color coding:<br/>  - 🟢 95%+ OK<br/>  - 🟡 50-95%<br/>  - 🔴 <50%<br/>• Error log search"]
+        end
+        
+        subgraph MON_OUTPUT["📁 Output Files"]
+            MON_O1["public/run-history.json<br/>• Append KPIs per run<br/>• 60+ run history<br/>• Trends tracking<br/>• Failure analysis"]
+            MON_O2["public/warmup-report.json<br/>• Perf test results<br/>• Cache metrics<br/>• Response times<br/>• Endpoint breakdown"]
+        end
+    end
+    
+    subgraph HEALING["🔧 SELF-HEALING LOGIC<br/>Auto-Create Missing Prerequisites"]
+        subgraph HEALING_WHAT["What Gets Auto-Created"]
+            HEALING_W1["✅ Missing Locales<br/>• Check if exists<br/>• Create with fallback<br/>• Setup chain<br/>• Then use"]
+            HEALING_W2["✅ Missing Workflows<br/>• Check if exists<br/>• Create with defaults<br/>• Define stages<br/>• Assign to CT"]
+            HEALING_W3["✅ Missing User Roles<br/>• Check CMS role<br/>• Auto-assign via shareStack<br/>• Grant permissions<br/>• Enable operations"]
+        end
+        
+        subgraph HEALING_WHEN["When It Happens"]
+            HEALING_TIME["⏱️ On Demand<br/>• Checked at every script<br/>• Created if missing<br/>• Retried if failed<br/>• Graceful skip if still missing"]
+        end
+    end
+    
+    subgraph CICD["🚀 CI/CD INTEGRATION"]
+        subgraph CI_SETUP["GitHub Actions"]
+            CI_S1["Scheduled Trigger<br/>• Every 5 minutes<br/>• Cron: */5 * * * *<br/>• Manual trigger available"]
+            CI_S2["Environment Variables<br/>• CONTENTSTACK_API_KEY<br/>• CONTENTSTACK_MANAGEMENT_TOKEN<br/>• CONTENTSTACK_USER_EMAIL<br/>• CONTENTSTACK_USER_PASSWORD<br/>• CONTENTSTACK_PUBLISH_ENVIRONMENT"]
+        end
+        
+        subgraph CI_EXEC["Execution"]
+            CI_E1["npm run automate:drive:ci<br/>• Bootstrap check<br/>• Periodic execution<br/>• Result appending<br/>• Alert on failure"]
+        end
+    end
+    
+    ROOT --> FRONTEND
+    ROOT --> PERF
+    ROOT --> AUTO
+    ROOT --> ADVANCED
+    ROOT --> MONITORING
+    ROOT --> HEALING
+    ROOT --> CICD
+    
+    FRONTEND --> FE_PAGES
+    FRONTEND --> FE_COMPONENTS
+    FRONTEND --> FE_LIBS
+    FRONTEND --> FE_FEATURES
+    
+    PERF --> PERF_TYPES
+    PERF --> PERF_METRICS
+    PERF --> PERF_OUTPUT
+    
+    AUTO --> AUTO_ORCH
+    AUTO --> AUTO_BOOTSTRAP
+    AUTO --> AUTO_PERIODIC
+    AUTO --> AUTO_METER
+    AUTO --> AUTO_USERS
+    AUTO --> AUTO_UTILS
+    AUTO --> AUTO_LIBS
+    
+    ADVANCED --> ADV_MULTIUSER
+    ADVANCED --> ADV_AUTH
+    ADVANCED --> ADV_PLACEHOLDER
+    ADVANCED --> ADV_LOCALE
+    ADVANCED --> ADV_WORKFLOW
+    
+    MONITORING --> MON_KPI
+    MONITORING --> MON_DASH
+    MONITORING --> MON_OUTPUT
+    
+    HEALING --> HEALING_WHAT
+    HEALING --> HEALING_WHEN
+    
+    CICD --> CI_SETUP
+    CICD --> CI_EXEC
+    
+    style ROOT fill:#1a1a2e,stroke:#00d4ff,stroke-width:3px,color:#fff
+    style FRONTEND fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+    style PERF fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style AUTO fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style ADVANCED fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style MONITORING fill:#e0f2f1,stroke:#00695c,stroke-width:2px
+    style HEALING fill:#f1f8e9,stroke:#33691e,stroke-width:2px
+    style CICD fill:#fde7e8,stroke:#880e4f,stroke-width:2px
 ```
+
+### Feature Breakdown by Category
+
+| Category | What's Included | Count |
+|----------|-----------------|-------|
+| **Frontend Pages** | HomePage, EntryPage, RunsDashboard | 3 |
+| **React Components** | Layout, DigestItem, HeroCanvas | 3 |
+| **Frontend Libraries** | Delivery API, Formatting, Events tracking | 4 |
+| **Automation Scripts** | Bootstrap, Periodic, Meter-coverage, Utilities | 24+ |
+| **Advanced Features** | Multi-user, Auth paths, Placeholders, Locale experiments, Workflow patterns | 5 |
+| **Core Libraries** | CMA wrapper, TOTP, Placeholders, Patterns, Schema gen, Progress | 6 |
+| **KPI Metrics** | Entries created/published/deleted, users, success rate, trends | 15+ |
+| **Authentication Methods** | Authtoken, Email+Pwd, TOTP/2FA, TFA token | 4 |
+| **Placeholder Types** | Timestamp, UUID, Random int, Random choice, Entry UID, Taxonomy | 6 |
+| **Workflow Patterns** | Linear, Skip, Rework, PartialStall, FirstOnly | 5 |
+| **Locale Support** | Master + 5 locales, Fallback chains, Experiments | 6+ |
+| **Content Types** | Configurable, Multi-branch support, Field validation | N/A |
+| **Branches** | 30-branch lineage, No teardown, Full lifecycle | 30 |
+| **Meter Dimensions** | User, branch, locale, workflow, stage, lifecycle, orphan | 7+ |
+| **Self-Healing** | Auto-create locales, workflows, roles | 3 |
+| **Performance Testing** | Warmup, hitting, concurrent, cache tracking | 3 modes |
+| **Monitoring** | Dashboard, KPI tracking, Error logging, Report generation | Continuous |
+| **CI/CD** | GitHub Actions, 5-min scheduling, Secrets management | Full |
+
+### What Gets Tested (Comprehensive Coverage)
+
+✅ **Entry Lifecycle** — Create, localize, publish, unpublish, update, delete, restore  
+✅ **Workflow Transitions** — 5 patterns with weighted distribution  
+✅ **Multi-User Scenarios** — Round-robin across multiple users with distinct user_uid  
+✅ **Multi-Branch Lineage** — 30-branch tree with cascading content  
+✅ **Locale Fallback Chains** — 5 locales with fallback validation  
+✅ **Aging & Retention** — Tiered retention, aged entry restoration  
+✅ **Orphaning Scenarios** — Branch/locale deletion events  
+✅ **Meter Dimensions** — All CMA operation dimensions covered  
+✅ **Authentication Paths** — Authtoken, email+pwd, TOTP, TFA  
+✅ **Advanced Features** — Placeholders, locale experiments, workflow patterns  
+✅ **Performance Testing** — Cache warming, concurrent requests, response times  
+✅ **Self-Healing** — Auto-creation of missing prerequisites  
+✅ **Multi-Locale Support** — Realistic fallback and inheritance patterns  
+✅ **Event Generation** — All meter events for analytics validation  
+✅ **Continuous Monitoring** — Dashboard, KPIs, trend tracking
 
 ---
 
