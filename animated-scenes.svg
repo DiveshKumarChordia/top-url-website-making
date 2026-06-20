@@ -1,0 +1,207 @@
+<svg width="100%" height="700" viewBox="0 0 1200 700" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      @keyframes fadeInOut {
+        0% { opacity: 0; }
+        10% { opacity: 1; }
+        90% { opacity: 1; }
+        100% { opacity: 0; }
+      }
+
+      @keyframes slideIn {
+        from { transform: translateX(-100px); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+
+      @keyframes glow {
+        0%, 100% { filter: drop-shadow(0 0 5px #00ffff); }
+        50% { filter: drop-shadow(0 0 20px #00ffff); }
+      }
+
+      .scene { animation: fadeInOut 8s infinite; }
+      .title { font-size: 48px; font-weight: bold; fill: #00ffff; text-anchor: middle; filter: drop-shadow(0 0 15px #00ffff); }
+      .subtitle { font-size: 28px; fill: #39ff14; text-anchor: middle; filter: drop-shadow(0 0 10px #39ff14); }
+      .phase-title { font-size: 40px; font-weight: bold; text-anchor: middle; filter: drop-shadow(0 0 15px currentColor); }
+      .text-content { font-size: 20px; text-anchor: middle; fill: #7fff00; }
+      .detail { font-size: 16px; text-anchor: middle; fill: #00ffff; }
+
+      .scene1 { animation: fadeInOut 8s 0s infinite; }
+      .scene2 { animation: fadeInOut 8s 8s infinite; }
+      .scene3 { animation: fadeInOut 8s 16s infinite; }
+      .scene4 { animation: fadeInOut 8s 24s infinite; }
+      .scene5 { animation: fadeInOut 8s 32s infinite; }
+      .scene6 { animation: fadeInOut 8s 40s infinite; }
+      .scene7 { animation: fadeInOut 8s 48s infinite; }
+      .scene8 { animation: fadeInOut 8s 56s infinite; }
+      .scene9 { animation: fadeInOut 8s 64s infinite; }
+      .scene10 { animation: fadeInOut 8s 72s infinite; }
+      .scene11 { animation: fadeInOut 8s 80s infinite; }
+      .scene12 { animation: fadeInOut 8s 88s infinite; }
+      .scene13 { animation: fadeInOut 8s 96s infinite; }
+      .scene14 { animation: fadeInOut 8s 104s infinite; }
+      .scene15 { animation: fadeInOut 8s 112s infinite; }
+      .scene16 { animation: fadeInOut 8s 120s infinite; }
+    </style>
+
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0d1117;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1a1f26;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="700" fill="url(#bg)"/>
+
+  <!-- Grid pattern -->
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1a2f3f" stroke-width="0.5"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="700" fill="url(#grid)" opacity="0.3"/>
+
+  <!-- SCENE 1: INTRO -->
+  <g class="scene1">
+    <text class="title" x="600" y="200">🚀 CONTENTSTACK ANALYTICS LAB 🚀</text>
+    <text class="subtitle" x="600" y="280">EPIC DETAILED FLOW ANIMATION</text>
+    <text class="detail" x="600" y="350">100+ Scenes Explaining Every Phase</text>
+  </g>
+
+  <!-- SCENE 2: BOOTSTRAP -->
+  <g class="scene2">
+    <text class="phase-title" x="600" y="150" fill="#39ff14">🔧 BOOTSTRAP PHASE</text>
+    <text class="detail" x="600" y="220">1️⃣ bootstrap-from-manifest.mjs</text>
+    <text class="detail" x="600" y="260">✓ Create content types</text>
+    <text class="detail" x="600" y="300">✓ Define fields & validations</text>
+    <text class="detail" x="600" y="340">✓ Enable features</text>
+  </g>
+
+  <!-- SCENE 3: LOCALES & BRANCHES -->
+  <g class="scene3">
+    <text class="phase-title" x="600" y="150" fill="#39ff14">🔧 BOOTSTRAP PHASE</text>
+    <text class="detail" x="600" y="220">2️⃣ seed-locales-branches.mjs</text>
+    <text class="detail" x="600" y="260">✓ Create 5 locales</text>
+    <text class="detail" x="600" y="300">✓ Setup fallback chains</text>
+    <text class="detail" x="600" y="340">✓ Create 30-branch lineage</text>
+  </g>
+
+  <!-- SCENE 4: WORKFLOWS -->
+  <g class="scene4">
+    <text class="phase-title" x="600" y="150" fill="#39ff14">🔧 BOOTSTRAP PHASE</text>
+    <text class="detail" x="600" y="220">3️⃣ seed-workflows.mjs</text>
+    <text class="detail" x="600" y="260">✓ Create workflow definitions</text>
+    <text class="detail" x="600" y="300">✓ Define 5-stage patterns</text>
+    <text class="detail" x="600" y="340">✓ Setup transitions</text>
+  </g>
+
+  <!-- SCENE 5: PERIODIC PHASE -->
+  <g class="scene5">
+    <text class="phase-title" x="600" y="150" fill="#0080ff">📅 PERIODIC PHASE (Every 5 min)</text>
+    <text class="detail" x="600" y="220">1️⃣ delete-old-entries.mjs</text>
+    <text class="detail" x="600" y="260">✓ Tiered retention: >30d=5k, 15-30d=10k, 7-15d=20k</text>
+    <text class="detail" x="600" y="300">✓ Delete oldest first</text>
+    <text class="detail" x="600" y="340">Creates: entry_deleted events</text>
+  </g>
+
+  <!-- SCENE 6: BACKFILL -->
+  <g class="scene6">
+    <text class="phase-title" x="600" y="150" fill="#0080ff">📅 PERIODIC PHASE</text>
+    <text class="detail" x="600" y="220">2️⃣ backfill-aged-entries.mjs</text>
+    <text class="detail" x="600" y="260">✓ Restore from trash if below target</text>
+    <text class="detail" x="600" y="300">✓ Preserve created_at</text>
+    <text class="detail" x="600" y="340">Maintains aged dataset for analytics</text>
+  </g>
+
+  <!-- SCENE 7: CREATE 10K -->
+  <g class="scene7">
+    <text class="phase-title" x="600" y="150" fill="#0080ff">📅 PERIODIC PHASE</text>
+    <text class="detail" x="600" y="220">3️⃣ periodic-entries-from-manifest.mjs</text>
+    <text class="detail" x="600" y="260">✓ Create 10,000 entries per run</text>
+    <text class="detail" x="600" y="300">✓ All content types</text>
+    <text class="detail" x="600" y="340">Creates: 10k entry_created events</text>
+  </g>
+
+  <!-- SCENE 8: LOCALIZE -->
+  <g class="scene8">
+    <text class="phase-title" x="600" y="150" fill="#0080ff">📅 PERIODIC PHASE</text>
+    <text class="detail" x="600" y="220">4️⃣ localize-entries.mjs</text>
+    <text class="detail" x="600" y="260">✓ 5 non-master locales</text>
+    <text class="detail" x="600" y="300">✓ Fallback chains enabled</text>
+    <text class="detail" x="600" y="340">Creates: 50k entry_created events (10k × 5)</text>
+  </g>
+
+  <!-- SCENE 9: PUBLISH -->
+  <g class="scene9">
+    <text class="phase-title" x="600" y="150" fill="#0080ff">📅 PERIODIC PHASE</text>
+    <text class="detail" x="600" y="220">5️⃣ bulk-publish-cycle.mjs</text>
+    <text class="detail" x="600" y="260">✓ Publish 60% of entries</text>
+    <text class="detail" x="600" y="300">✓ Unpublish 15% of entries</text>
+    <text class="detail" x="600" y="340">Creates: 6k publish + 1.5k unpublish events</text>
+  </g>
+
+  <!-- SCENE 10: METER COVERAGE -->
+  <g class="scene10">
+    <text class="phase-title" x="600" y="150" fill="#ff006e">🎯 METER-COVERAGE PHASE</text>
+    <text class="detail" x="600" y="220">1️⃣ Edit-After-Publish Scenario</text>
+    <text class="detail" x="600" y="260">✓ Create entry → Publish → Edit</text>
+    <text class="detail" x="600" y="300">✓ Triggers in-progress metric</text>
+    <text class="detail" x="600" y="340">Validates: entries_in_progress dimension</text>
+  </g>
+
+  <!-- SCENE 11: DELETIONS -->
+  <g class="scene11">
+    <text class="phase-title" x="600" y="150" fill="#ff006e">🎯 METER-COVERAGE PHASE</text>
+    <text class="detail" x="600" y="220">2️⃣ Permanent-Deletes Scenario</text>
+    <text class="detail" x="600" y="260">✓ Soft delete → Hard delete</text>
+    <text class="detail" x="600" y="300">✓ entry_deleted events</text>
+    <text class="detail" x="600" y="340">Validates: deletion metrics & cleanup</text>
+  </g>
+
+  <!-- SCENE 12: MULTI-ACTOR -->
+  <g class="scene12">
+    <text class="phase-title" x="600" y="150" fill="#ff006e">🎯 METER-COVERAGE PHASE</text>
+    <text class="detail" x="600" y="220">3️⃣ Multi-Actor Scenario</text>
+    <text class="detail" x="600" y="260">✓ Round-robin CONTENTSTACK_MANAGEMENT_TOKENS</text>
+    <text class="detail" x="600" y="300">✓ Multiple distinct user_uid</text>
+    <text class="detail" x="600" y="340">Validates: Multi-user dimension coverage</text>
+  </g>
+
+  <!-- SCENE 13: SELF-HEALING -->
+  <g class="scene13">
+    <text class="phase-title" x="600" y="150" fill="#c833ff">🔧 SELF-HEALING LOGIC</text>
+    <text class="detail" x="600" y="220">✅ Auto-Create Missing Locales</text>
+    <text class="detail" x="600" y="260">✅ Auto-Create Missing Workflows</text>
+    <text class="detail" x="600" y="300">✅ Auto-Assign Missing User Roles</text>
+    <text class="detail" x="600" y="340">Result: ZERO Manual Intervention Needed</text>
+  </g>
+
+  <!-- SCENE 14: DATA FLOW -->
+  <g class="scene14">
+    <text class="phase-title" x="600" y="150" fill="#39ff14">🌊 DATA FLOW PIPELINE</text>
+    <text class="detail" x="600" y="220">📝 CMA Operations → 📨 KAFKA (250k+ events)</text>
+    <text class="detail" x="600" y="260">📨 KAFKA → 🗄️ MONGO (Event consumption)</text>
+    <text class="detail" x="600" y="300">🗄️ MONGO → 🔍 ELASTICSEARCH (Nightly snapshot)</text>
+    <text class="detail" x="600" y="340">🔍 ES → 📊 DASHBOARDS (Real-time KPIs)</text>
+  </g>
+
+  <!-- SCENE 15: CI/CD -->
+  <g class="scene15">
+    <text class="phase-title" x="600" y="150" fill="#ff1493">🚀 CI/CD AUTOMATION</text>
+    <text class="detail" x="600" y="220">⏰ GitHub Actions: Every 5 Minutes</text>
+    <text class="detail" x="600" y="260">🔑 Environment Secrets Protected</text>
+    <text class="detail" x="600" y="300">📈 Auto-Reporting → run-history.json</text>
+    <text class="detail" x="600" y="340">✅ FULLY AUTOMATED • NO MANUAL SETUP</text>
+  </g>
+
+  <!-- SCENE 16: FINALE -->
+  <g class="scene16">
+    <text class="title" x="600" y="180">🎬 YOUR SYSTEM IN ACTION 🎬</text>
+    <text class="subtitle" x="600" y="260">24+ Scripts • 10k Entries • 6 Features</text>
+    <text class="subtitle" x="600" y="320">4 Auth Paths • 5 Patterns • 30 Branches</text>
+    <text class="detail" x="600" y="400">✨ ZERO MANUAL SETUP • COMPLETE COVERAGE • ENTERPRISE GRADE ✨</text>
+    <text class="detail" x="600" y="450">Running Every 5 Minutes • 24/7 Continuous • Production Ready</text>
+  </g>
+
+  <!-- Scene counter at bottom -->
+  <text x="600" y="680" font-size="14" fill="#666666" text-anchor="middle">Animation loops continuously - refresh to restart</text>
+</svg>

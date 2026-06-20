@@ -79,26 +79,22 @@ Together they create a **production-grade testing environment** running continuo
 
 ---
 
-### 🎬 EPIC DETAILED ANIMATION - AUTO-PLAYING (100+ SCENES)
+### 🎬 EPIC DETAILED ANIMATION - AUTO-PLAYING (16 SCENES)
 
-<div align="center" style="margin: 20px 0;">
-<iframe src="https://raw.githack.com/DiveshKumarChordia/contentstack-analytics-automation-lab/main/epic-detailed-animation.html" width="100%" height="650" frameborder="0" style="border: 2px solid #00ffff; border-radius: 8px; box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);"></iframe>
-</div>
+![Detailed System Flow Animation](./animated-scenes.svg)
 
-> **🎬 DETAILED ANIMATION BREAKDOWN (100+ Scenes):**
+> **🎬 ANIMATION SCENES (Each ~8 seconds, then loops):**
 >
-> **INTRO (5 Scenes)** — Project overview and tagline  
-> **BOOTSTRAP PHASE (10 Scenes)** — 4 scripts creating foundation (CTs, locales, workflows, publishing)  
-> **PERIODIC PHASE (25 Scenes)** — 8 scripts running every 5 min (delete, backfill, create 10k, localize, publish, transition, churn, branch)  
-> **METER-COVERAGE PHASE (25 Scenes)** — 6 comprehensive scenarios (edit→pub, deletes, stalls, no-WF, multi-actor, orphans)  
-> **USER MANAGEMENT (7 Scenes)** — Invite 10 users with CMS roles  
-> **SELF-HEALING (8 Scenes)** — Auto-create missing locales, workflows, roles  
-> **MONITORING (8 Scenes)** — Real-time KPI metrics (10k entries, 6k published, 10 users, 95% success, 250k+ events)  
-> **DATA FLOW (7 Scenes)** — Complete pipeline (CMA → Kafka → Mongo → ES → Dashboards)  
-> **CI/CD (5 Scenes)** — GitHub Actions automation, secure secrets, auto-reporting  
-> **FINALE (10 Scenes)** — Grand summary with stats and taglines
+> **Scene 1** — Intro: Project overview  
+> **Scenes 2-4** — BOOTSTRAP: Create CTs, locales, workflows  
+> **Scenes 5-9** — PERIODIC: Delete old, backfill, create 10k, localize, publish  
+> **Scenes 10-12** — METER-COVERAGE: Edit→pub, deletes, multi-actor scenarios  
+> **Scene 13** — SELF-HEALING: Auto-create missing resources  
+> **Scene 14** — DATA FLOW: Complete pipeline (CMA → Kafka → Mongo → ES → Dashboards)  
+> **Scene 15** — CI/CD: GitHub Actions automation  
+> **Scene 16** — FINALE: System summary and impact
 >
-> ✨ **Auto-playing Canvas animation with glowing effects • Explains every phase in detail • Shows complete system journey** ✨
+> ✨ **Animated SVG with glowing effects • Auto-plays in README • Explains every phase • ~2 minutes total** ✨
 
 ---
 
